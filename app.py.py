@@ -6,12 +6,12 @@ from PIL import Image
 
 # --- INITIALIZE PAGE CONFIGURATION AND FAVICON ---
 # You can use a URL to a public image, a local file path, or an emoji string
+# --- INITIALIZE PAGE CONFIGURATION AND FAVICON ---
 st.set_page_config(
     page_title="Character Matrix",
-    page_icon="🪐",  # This sets the icon. You can replace this emoji with a URL to an image file.
+    page_icon="🪐",  # <-- Make sure there is a closing quote right here!
     layout="wide"
 )
-
 CHAR_FILE = "custom_characters.json"
 AVATAR_DIR = "uploaded_avatars"
 # ... rest of your code remains exactly the same ...
