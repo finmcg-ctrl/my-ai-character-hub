@@ -12,14 +12,13 @@ if not os.path.exists(AVATAR_DIR):
 
 # --- INITIALIZE THEME AND SESSION MEMORY MATRIX ---
 if "theme" not in st.session_state:
-    st.session_state.theme = "Dark" # Default launch setting
+    st.session_state.theme = "Dark"
 
 if "messages" not in st.session_state:
     st.session_state.messages = {}
 
 # --- DYNAMIC STRUCTURAL CSS INJECTOR ---
 if st.session_state.theme == "Dark":
-    # Deep Midnight Theme Palette
     st.markdown("""
         <style>
         .stApp { background-color: #0f0f14; color: #cdd6f4; }
@@ -30,7 +29,6 @@ if st.session_state.theme == "Dark":
         </style>
     """, unsafe_allow_html=True)
 else:
-    # Clean Minimalist Light Theme Palette
     st.markdown("""
         <style>
         .stApp { background-color: #f8f9fa; color: #212529; }
@@ -99,7 +97,6 @@ def generate_reply(user_msg, char_name):
 with st.sidebar:
     st.title("🪐 Character Hub")
     
-    # Theme Controller Row
     theme_selection = st.selectbox("Interface Display Theme:", ["Dark", "Light"], index=0 if st.session_state.theme == "Dark" else 1)
     if theme_selection != st.session_state.theme:
         st.session_state.theme = theme_selection
