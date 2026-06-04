@@ -13,7 +13,7 @@ st.set_page_config(
 
 CHAR_FILE = "custom_characters.json"
 AVATAR_DIR = "uploaded_avatars"
-CHAT_MEDIA_DIR = "chat_media"  # Folder to temporarily save user-sent chat images
+CHAT_MEDIA_DIR = "chat_media"  
 
 # Ensure necessary directories exist
 for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
@@ -26,6 +26,10 @@ if "theme" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state.messages = {}
+
+# Keep track of the last processed image file name to prevent infinite duplicate loops
+if "last_processed_image" not in st.session_state:
+    st.session_state.last_processed_image = None
 
 # --- DYNAMIC STRUCTURAL CSS INJECTOR ---
 if st.session_state.theme == "Dark":
@@ -85,7 +89,6 @@ def generate_reply(user_msg, char_name, has_image=False):
     
     actions = ["*crosses arms*", "*nods slowly*", "*sighs deep*", "*smirks*"]
     
-    # Custom response trigger if the user sent an image file
     if has_image:
         if "wizard" in bio:
             return f"{random.choice(actions)} What sort of magical artifact or illusion am I looking at right now? Explain yourself!"
@@ -152,7 +155,7 @@ with tab_chat:
     if active_char not in st.session_state.messages:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
 
-    # Render previous messages (including images if they exist)
+    # Render previous messages
     for msg in st.session_state.messages[active_char]:
         with st.chat_message(msg["role"]):
             if msg.get("image") and os.path.exists(msg["image"]):
@@ -167,31 +170,31 @@ with tab_chat:
     # Capture chat input text
     user_input = st.chat_input(f"Send a message to {active_char}...")
 
-    # Trigger action if either text is typed OR an image file is dropped in
-    if user_input or chat_image_file:
+    # Only process if user typed text OR uploaded an un-processed image
+    is_new_image = chat_image_file is not None and chat_image_file.name != st.session_state.last_processed_image
+
+    if user_input or is_new_image:
         saved_chat_img_path = None
         
-        # If user attached an image, process, compress, and save it
-        if chat_image_file is not None:
+        if is_new_image:
             try:
                 img = Image.open(chat_image_file)
-                
-                # OPTIMIZATION STEP: Downsize image if it's a huge phone picture
                 img.thumbnail((800, 800)) 
                 
                 file_extension = os.path.splitext(chat_image_file.name)[1]
                 if not file_extension:
                     file_extension = ".jpg"
                     
-                file_name = f"msg_{random.randint(1000, 9999)}{file_extension}"
+                file_name = f"msg_{random.randint(10000, 99999)}{file_extension}"
                 saved_chat_img_path = os.path.join(CHAT_MEDIA_DIR, file_name)
-                
-                # Save optimized copy with 80% compressed resolution quality to avoid network drops
                 img.save(saved_chat_img_path, optimize=True, quality=80)
+                
+                # Mark this specific file name as processed so it doesn't double-trigger on reload
+                st.session_state.last_processed_image = chat_image_file.name
             except Exception as e:
                 st.error(f"Failed to process chat image: {e}")
 
-        # Construct the user message log
+        # Append to message log
         user_message_entry = {
             "role": "user", 
             "content": user_input if user_input else "", 
@@ -199,22 +202,12 @@ with tab_chat:
         }
         st.session_state.messages[active_char].append(user_message_entry)
         
-        # Display user message instantly
-        with st.chat_message("user"):
-            if saved_chat_img_path:
-                st.image(saved_chat_img_path, width=250)
-            if user_input:
-                st.write(user_input)
-            
         # Generate and log character reply
         has_img_flag = True if saved_chat_img_path else False
         reply = generate_reply(user_input, active_char, has_image=has_img_flag)
-        
         st.session_state.messages[active_char].append({"role": "assistant", "content": reply, "image": None})
-        with st.chat_message("assistant"):
-            st.write(reply)
-            
-        # Force rerun to clear the image file uploader slot for the next message
+        
+        # Clear out file state gate and rerun to cleanly update layout view
         st.rerun()
 
 # ================= TAB 2: ADVANCED CREATION DASHBOARD =================
@@ -244,10 +237,7 @@ with tab_create:
             if uploaded_avatar is not None:
                 try:
                     img = Image.open(uploaded_avatar)
-                    
-                    # Also optimize new character card profile avatar uploads!
                     img.thumbnail((300, 300))
-                    
                     file_extension = os.path.splitext(uploaded_avatar.name)[1]
                     file_name = f"{new_name.lower().replace(' ', '_')}_avatar{file_extension}"
                     saved_avatar_path = os.path.join(AVATAR_DIR, file_name)
