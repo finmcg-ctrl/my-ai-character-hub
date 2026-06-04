@@ -171,14 +171,23 @@ with tab_chat:
     if user_input or chat_image_file:
         saved_chat_img_path = None
         
-        # If user attached an image, process and save it
+        # If user attached an image, process, compress, and save it
         if chat_image_file is not None:
             try:
                 img = Image.open(chat_image_file)
+                
+                # OPTIMIZATION STEP: Downsize image if it's a huge phone picture
+                img.thumbnail((800, 800)) 
+                
                 file_extension = os.path.splitext(chat_image_file.name)[1]
+                if not file_extension:
+                    file_extension = ".jpg"
+                    
                 file_name = f"msg_{random.randint(1000, 9999)}{file_extension}"
                 saved_chat_img_path = os.path.join(CHAT_MEDIA_DIR, file_name)
-                img.save(saved_chat_img_path)
+                
+                # Save optimized copy with 80% compressed resolution quality to avoid network drops
+                img.save(saved_chat_img_path, optimize=True, quality=80)
             except Exception as e:
                 st.error(f"Failed to process chat image: {e}")
 
@@ -235,10 +244,14 @@ with tab_create:
             if uploaded_avatar is not None:
                 try:
                     img = Image.open(uploaded_avatar)
+                    
+                    # Also optimize new character card profile avatar uploads!
+                    img.thumbnail((300, 300))
+                    
                     file_extension = os.path.splitext(uploaded_avatar.name)[1]
                     file_name = f"{new_name.lower().replace(' ', '_')}_avatar{file_extension}"
                     saved_avatar_path = os.path.join(AVATAR_DIR, file_name)
-                    img.save(saved_avatar_path)
+                    img.save(saved_avatar_path, optimize=True, quality=85)
                 except Exception as e:
                     st.error(f"Media compile tracking error: {e}")
 
