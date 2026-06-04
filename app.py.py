@@ -139,10 +139,10 @@ def generate_reply(user_msg, char_name, has_image=False):
 
     if "coffee" in msg or "drink" in msg:
         if "coffee" in bio or "pilot" in bio:
-            return "Did someone say coffee?! I'd trade my entire warp drive engine for a warm cup right now."
+            return f"{random.choice(actions)} Did someone say coffee?! I'd trade my entire warp drive engine for a warm cup right now."
     if "magic" in msg or "wizard" in msg:
         if "wizard" in bio:
-            return "Magic requires absolute focus! One wrong syllable and you turn into a toad."
+            return f"{random.choice(actions)} Magic requires absolute focus! One wrong syllable and you turn into a toad."
 
     matching_words = [word for word in bio.replace(",", "").replace(".", "").split() if len(word) > 4 and word in msg]
     if matching_words:
@@ -197,26 +197,71 @@ with tab_chat:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
         github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
 
-    # Render previous logs safely
-    for msg in st.session_state.messages[active_char]:
+    # Render previous logs with numbered reference chips so the user knows which index to modify
+    for index, msg in enumerate(st.session_state.messages[active_char]):
+        role_label = f"🤖 {active_char}" if msg["role"] == "assistant" else "👤 You"
         with st.chat_message(msg["role"]):
+            st.markdown(f"<span style='font-size:11px; color:#888a9e; float:right;'>ID: #{index}</span>", unsafe_allow_html=True)
             if msg.get("image") and os.path.exists(msg["image"]):
                 st.image(msg["image"], width=250)
             if msg["content"]:
                 st.write(msg["content"])
 
-    # --- REWIND / DELETE INTERFACE TOOLS ---
-    col_space, col_action = st.columns([6, 2])
-    with col_action:
-        # Show delete button only if there's actual chat text beyond just the bot greeting card
-        if len(st.session_state.messages[active_char]) > 1:
-            if st.button("🗑️ Delete Last Turn", use_container_width=True, help="Removes your last message and the bot response"):
-                # Remove both the AI response and your user message
-                st.session_state.messages[active_char].pop()
-                st.session_state.messages[active_char].pop()
-                # Synchronize updated scenario straight back to GitHub cloud storage
-                github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
-                st.rerun()
+    st.markdown("---")
+
+    # ================= CHAI CHAT EDIT & MODIFICATION ENGINE =================
+    if len(st.session_state.messages[active_char]) > 1:
+        with st.expander("⚙️ Chai Engine Toolkit: Edit, Re-roll, or Delete Messages"):
+            msg_options = [f"#{i} [{st.session_state.messages[active_char][i]['role'].upper()}]: {st.session_state.messages[active_char][i]['content'][:30]}..." 
+                           for i in range(len(st.session_state.messages[active_char]))]
+            
+            selected_msg_str = st.selectbox("Select message to modify:", msg_options, index=len(msg_options)-1)
+            selected_idx = int(selected_msg_str.split(" ")[0].replace("#", ""))
+            target_msg = st.session_state.messages[active_char][selected_idx]
+            
+            col_ed1, col_ed2, col_ed3 = st.columns(3)
+            
+            with col_ed1:
+                # --- EDIT OPTION ---
+                new_text = st.text_input("Rewrite message text:", value=target_msg["content"])
+                if st.button("💾 Save Edit", use_container_width=True):
+                    st.session_state.messages[active_char][selected_idx]["content"] = new_text
+                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                    st.rerun()
+                    
+            with col_ed2:
+                # --- REGENERATE / RE-ROLL OPTION ---
+                st.markdown("<p style='margin-bottom:12px;'></p>", unsafe_allow_html=True)
+                if st.button("🔄 Regenerate AI Reply", use_container_width=True, help="Re-rolls the response using preceding dialogue context"):
+                    # Find the last user input text present before this AI message
+                    context_input = ""
+                    for k in range(selected_idx - 1, -1, -1):
+                        if st.session_state.messages[active_char][k]["role"] == "user":
+                            context_input = st.session_state.messages[active_char][k]["content"]
+                            break
+                    
+                    # Generate a fresh reply string variance
+                    fresh_reply = generate_reply(context_input, active_char, has_image=False)
+                    
+                    # If target is an assistant message, overwrite it. If it's a user message, overwrite the following assistant reply.
+                    if target_msg["role"] == "assistant":
+                        st.session_state.messages[active_char][selected_idx]["content"] = fresh_reply
+                    elif selected_idx + 1 < len(st.session_state.messages[active_char]):
+                        st.session_state.messages[active_char][selected_idx + 1]["content"] = fresh_reply
+                        
+                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                    st.rerun()
+                    
+            with col_ed3:
+                # --- INDIVIDUAL FILE LINE ERASURE ---
+                st.markdown("<p style='margin-bottom:12px;'></p>", unsafe_allow_html=True)
+                if st.button("🗑️ Erase This Message", use_container_width=True):
+                    st.session_state.messages[active_char].pop(selected_idx)
+                    # Safety recovery: ensure greeting anchor remains intact
+                    if len(st.session_state.messages[active_char]) == 0:
+                        st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
+                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                    st.rerun()
 
     # --- IMAGE ATTACHMENT HUB ---
     st.markdown("<p style='font-size:13px; margin-bottom: -15px;'>📎 Attach an image to your message:</p>", unsafe_allow_html=True)
