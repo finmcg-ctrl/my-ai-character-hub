@@ -26,11 +26,10 @@ for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-# Display a helper alert if the secret variable isn't configured in Streamlit Cloud
 if not TOKEN:
     st.warning("⚠️ Database Warning: `GITHUB_TOKEN` was not found inside your Streamlit Secrets vault. Your chats are currently running on temporary memory.")
 
-# Helper function to read from GitHub DB with explicit error logs
+# Helper function to read from GitHub DB
 def github_fetch_file(filename, default_data):
     if not TOKEN:
         return default_data
@@ -42,16 +41,11 @@ def github_fetch_file(filename, default_data):
             content = response.json()
             file_content = base64.b64decode(content["content"]).decode("utf-8")
             return json.loads(file_content)
-        elif response.status_code == 401 or response.status_code == 403:
-            st.error(f"❌ GitHub Authorization Failed (Status {response.status_code}). Check your Personal Access Token scopes.")
-        elif response.status_code == 404:
-            # File doesn't exist yet, this is normal for a fresh build
-            return default_data
-    except Exception as e:
-        st.error(f"🔌 Database Connection Error: {e}")
+    except:
+        pass
     return default_data
 
-# Helper function to save to GitHub DB with explicit error logs
+# Helper function to save to GitHub DB
 def github_save_file(filename, data):
     if not TOKEN:
         return
@@ -69,11 +63,9 @@ def github_save_file(filename, data):
         if sha:
             payload["sha"] = sha
             
-        res = requests.put(url, headers=headers, json=payload)
-        if res.status_code not in [200, 201]:
-            st.error(f"❌ Could not write back to GitHub database. Status Code: {res.status_code}. Response: {res.text}")
-    except Exception as e:
-        st.error(f"💾 Failed to commit data packet: {e}")
+        requests.put(url, headers=headers, json=payload)
+    except:
+        pass
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
@@ -212,6 +204,19 @@ with tab_chat:
                 st.image(msg["image"], width=250)
             if msg["content"]:
                 st.write(msg["content"])
+
+    # --- REWIND / DELETE INTERFACE TOOLS ---
+    col_space, col_action = st.columns([6, 2])
+    with col_action:
+        # Show delete button only if there's actual chat text beyond just the bot greeting card
+        if len(st.session_state.messages[active_char]) > 1:
+            if st.button("🗑️ Delete Last Turn", use_container_width=True, help="Removes your last message and the bot response"):
+                # Remove both the AI response and your user message
+                st.session_state.messages[active_char].pop()
+                st.session_state.messages[active_char].pop()
+                # Synchronize updated scenario straight back to GitHub cloud storage
+                github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                st.rerun()
 
     # --- IMAGE ATTACHMENT HUB ---
     st.markdown("<p style='font-size:13px; margin-bottom: -15px;'>📎 Attach an image to your message:</p>", unsafe_allow_html=True)
