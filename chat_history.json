@@ -4,16 +4,6 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
-        },
-        {
-            "role": "user",
-            "content": "Hey there, Space Explorer",
-            "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*sighs deep* Talking about space? That aligns perfectly with my background as a Sarcastic Space Explorer.",
-            "image": null
         }
     ]
 }
