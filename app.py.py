@@ -14,7 +14,6 @@ st.set_page_config(
 )
 
 # --- GITHUB PERMANENT DATABASE CONFIGURATION ---
-# Change "my-ai-character-hub" to your exact repository folder name if it is different!
 REPO = "finmcg-ctrl/my-ai-character-hub"
 TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 
@@ -27,41 +26,43 @@ for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-# Helper functions to read data directly from your GitHub files
+# Helper function to read from GitHub DB
 def github_fetch_file(filename, default_data):
     if not TOKEN:
         return default_data
     url = f"https://api.github.com/repos/{REPO}/contents/{filename}"
     headers = {"Authorization": f"token {TOKEN}"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        content = response.json()
-        file_content = base64.b64decode(content["content"]).decode("utf-8")
-        try:
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            content = response.json()
+            file_content = base64.b64decode(content["content"]).decode("utf-8")
             return json.loads(file_content)
-        except:
-            return default_data
+    except:
+        pass
     return default_data
 
-# Helper functions to save data directly back to your GitHub files
+# Helper function to save to GitHub DB
 def github_save_file(filename, data):
     if not TOKEN:
         return
     url = f"https://api.github.com/repos/{REPO}/contents/{filename}"
     headers = {"Authorization": f"token {TOKEN}"}
-    
-    response = requests.get(url, headers=headers)
-    sha = response.json().get("sha") if response.status_code == 200 else None
-    
-    encoded_content = base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
-    payload = {
-        "message": f"Database Sync: Updated {filename}",
-        "content": encoded_content
-    }
-    if sha:
-        payload["sha"] = sha
+    try:
+        response = requests.get(url, headers=headers)
+        sha = response.json().get("sha") if response.status_code == 200 else None
         
-    requests.put(url, headers=headers, json=payload)
+        encoded_content = base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
+        payload = {
+            "message": f"Database Sync: Updated {filename}",
+            "content": encoded_content
+        }
+        if sha:
+            payload["sha"] = sha
+            
+        requests.put(url, headers=headers, json=payload)
+    except:
+        pass
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
@@ -193,7 +194,7 @@ with tab_chat:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
         github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
 
-    # Render previous messages
+    # Render previous logs safely
     for msg in st.session_state.messages[active_char]:
         with st.chat_message(msg["role"]):
             if msg.get("image") and os.path.exists(msg["image"]):
@@ -205,7 +206,7 @@ with tab_chat:
     st.markdown("<p style='font-size:13px; margin-bottom: -15px;'>📎 Attach an image to your message:</p>", unsafe_allow_html=True)
     chat_image_file = st.file_uploader("", type=["png", "jpg", "jpeg"], key="chat_uploader", label_visibility="collapsed")
 
-    # Capture chat input text
+    # Capture chat input text safely
     user_input = st.chat_input(f"Send a message to {active_char}...")
 
     is_new_image = chat_image_file is not None and chat_image_file.name != st.session_state.last_processed_image
@@ -230,7 +231,7 @@ with tab_chat:
             except Exception as e:
                 st.error(f"Failed to process chat image: {e}")
 
-        # Append to message log
+        # Append user message entry
         user_message_entry = {
             "role": "user", 
             "content": user_input if user_input else "", 
@@ -238,12 +239,12 @@ with tab_chat:
         }
         st.session_state.messages[active_char].append(user_message_entry)
         
-        # Generate character reply
+        # Process and append character reply
         has_img_flag = True if saved_chat_img_path else False
         reply = generate_reply(user_input, active_char, has_image=has_img_flag)
         st.session_state.messages[active_char].append({"role": "assistant", "content": reply, "image": None})
         
-        # Save directly to GitHub
+        # Save to database file on GitHub
         github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
