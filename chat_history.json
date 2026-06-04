@@ -14,6 +14,16 @@
             "role": "assistant",
             "content": "*smirks* That is an interesting transmission line. Tell me more.",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "i like space",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*sighs deep* Talking about space? That aligns perfectly with my background as a Sarcastic Space Explorer.",
+            "image": null
         }
     ]
 }
