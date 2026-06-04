@@ -5,22 +5,20 @@ import random
 from PIL import Image
 
 # --- INITIALIZE PAGE CONFIGURATION AND FAVICON ---
-# You can use a URL to a public image, a local file path, or an emoji string
-# --- INITIALIZE PAGE CONFIGURATION AND FAVICON ---
 st.set_page_config(
     page_title="Character Matrix",
-    page_icon="🪐",  # <-- Make sure there is a closing quote right here!
+    page_icon="🪐",  
     layout="wide"
 )
-CHAR_FILE = "custom_characters.json"
-AVATAR_DIR = "uploaded_avatars"
-# ... rest of your code remains exactly the same ...
 
 CHAR_FILE = "custom_characters.json"
 AVATAR_DIR = "uploaded_avatars"
+CHAT_MEDIA_DIR = "chat_media"  # Folder to temporarily save user-sent chat images
 
-if not os.path.exists(AVATAR_DIR):
-    os.makedirs(AVATAR_DIR)
+# Ensure necessary directories exist
+for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 # --- INITIALIZE THEME AND SESSION MEMORY MATRIX ---
 if "theme" not in st.session_state:
@@ -80,13 +78,21 @@ if "current_char" not in st.session_state:
     st.session_state.current_char = list(CHARACTERS.keys())[0]
 
 # --- CHAI-STYLE ADAPTIVE CHAT RESPONSE LOGIC ---
-def generate_reply(user_msg, char_name):
-    msg = user_msg.lower()
+def generate_reply(user_msg, char_name, has_image=False):
+    msg = user_msg.lower() if user_msg else ""
     char_data = CHARACTERS[char_name]
     bio = char_data.get("bio", "").lower()
     
     actions = ["*crosses arms*", "*nods slowly*", "*sighs deep*", "*smirks*"]
     
+    # Custom response trigger if the user sent an image file
+    if has_image:
+        if "wizard" in bio:
+            return f"{random.choice(actions)} What sort of magical artifact or illusion am I looking at right now? Explain yourself!"
+        elif "pilot" in bio or "explorer" in bio:
+            return f"{random.choice(actions)} Scanning this transmission attachment. Looks like a coordinate map or unknown data module."
+        return f"{random.choice(actions)} Interesting visual transmission. My scanners are analyzing what you just sent me."
+
     if "coffee" in msg or "drink" in msg:
         if "coffee" in bio or "pilot" in bio:
             return "Did someone say coffee?! I'd trade my entire warp drive engine for a warm cup right now."
@@ -144,21 +150,63 @@ with tab_chat:
     st.markdown("---")
 
     if active_char not in st.session_state.messages:
-        st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"]}]
+        st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
 
+    # Render previous messages (including images if they exist)
     for msg in st.session_state.messages[active_char]:
         with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+            if msg.get("image") and os.path.exists(msg["image"]):
+                st.image(msg["image"], width=250)
+            if msg["content"]:
+                st.write(msg["content"])
 
-    if user_input := st.chat_input(f"Send a message to {active_char}..."):
-        st.session_state.messages[active_char].append({"role": "user", "content": user_input})
+    # --- IMAGE ATTACHMENT HUB ---
+    st.markdown("<p style='font-size:13px; margin-bottom: -15px;'>📎 Attach an image to your message:</p>", unsafe_allow_html=True)
+    chat_image_file = st.file_uploader("", type=["png", "jpg", "jpeg"], key="chat_uploader", label_visibility="collapsed")
+
+    # Capture chat input text
+    user_input = st.chat_input(f"Send a message to {active_char}...")
+
+    # Trigger action if either text is typed OR an image file is dropped in
+    if user_input or chat_image_file:
+        saved_chat_img_path = None
+        
+        # If user attached an image, process and save it
+        if chat_image_file is not None:
+            try:
+                img = Image.open(chat_image_file)
+                file_extension = os.path.splitext(chat_image_file.name)[1]
+                file_name = f"msg_{random.randint(1000, 9999)}{file_extension}"
+                saved_chat_img_path = os.path.join(CHAT_MEDIA_DIR, file_name)
+                img.save(saved_chat_img_path)
+            except Exception as e:
+                st.error(f"Failed to process chat image: {e}")
+
+        # Construct the user message log
+        user_message_entry = {
+            "role": "user", 
+            "content": user_input if user_input else "", 
+            "image": saved_chat_img_path
+        }
+        st.session_state.messages[active_char].append(user_message_entry)
+        
+        # Display user message instantly
         with st.chat_message("user"):
-            st.write(user_input)
+            if saved_chat_img_path:
+                st.image(saved_chat_img_path, width=250)
+            if user_input:
+                st.write(user_input)
             
-        reply = generate_reply(user_input, active_char)
-        st.session_state.messages[active_char].append({"role": "assistant", "content": reply})
+        # Generate and log character reply
+        has_img_flag = True if saved_chat_img_path else False
+        reply = generate_reply(user_input, active_char, has_image=has_img_flag)
+        
+        st.session_state.messages[active_char].append({"role": "assistant", "content": reply, "image": None})
         with st.chat_message("assistant"):
             st.write(reply)
+            
+        # Force rerun to clear the image file uploader slot for the next message
+        st.rerun()
 
 # ================= TAB 2: ADVANCED CREATION DASHBOARD =================
 with tab_create:
