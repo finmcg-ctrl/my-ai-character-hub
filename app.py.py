@@ -2,6 +2,8 @@ import streamlit as st
 import json
 import os
 import random
+import requests
+import base64
 from PIL import Image
 
 # --- INITIALIZE PAGE CONFIGURATION AND FAVICON ---
@@ -11,15 +13,55 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- GITHUB PERMANENT DATABASE CONFIGURATION ---
+# Change "my-ai-character-hub" to your exact repository folder name if it is different!
+REPO = "finmcg-ctrl/my-ai-character-hub"
+TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+
 CHAR_FILE = "custom_characters.json"
-CHAT_HISTORY_FILE = "chat_history.json"  # Permanent storage file for roleplay history
+CHAT_HISTORY_FILE = "chat_history.json"
 AVATAR_DIR = "uploaded_avatars"
 CHAT_MEDIA_DIR = "chat_media"  
 
-# Ensure necessary directories exist
 for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
+
+# Helper functions to read data directly from your GitHub files
+def github_fetch_file(filename, default_data):
+    if not TOKEN:
+        return default_data
+    url = f"https://api.github.com/repos/{REPO}/contents/{filename}"
+    headers = {"Authorization": f"token {TOKEN}"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        content = response.json()
+        file_content = base64.b64decode(content["content"]).decode("utf-8")
+        try:
+            return json.loads(file_content)
+        except:
+            return default_data
+    return default_data
+
+# Helper functions to save data directly back to your GitHub files
+def github_save_file(filename, data):
+    if not TOKEN:
+        return
+    url = f"https://api.github.com/repos/{REPO}/contents/{filename}"
+    headers = {"Authorization": f"token {TOKEN}"}
+    
+    response = requests.get(url, headers=headers)
+    sha = response.json().get("sha") if response.status_code == 200 else None
+    
+    encoded_content = base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
+    payload = {
+        "message": f"Database Sync: Updated {filename}",
+        "content": encoded_content
+    }
+    if sha:
+        payload["sha"] = sha
+        
+    requests.put(url, headers=headers, json=payload)
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
@@ -37,36 +79,16 @@ DEFAULT_CHARACTERS = {
     }
 }
 
-if os.path.exists(CHAR_FILE):
-    try:
-        with open(CHAR_FILE, "r") as f:
-            CHARACTERS = json.load(f)
-    except:
-        CHARACTERS = DEFAULT_CHARACTERS.copy()
-else:
-    CHARACTERS = DEFAULT_CHARACTERS.copy()
+if "characters_db" not in st.session_state:
+    st.session_state.characters_db = github_fetch_file(CHAR_FILE, DEFAULT_CHARACTERS)
 
-# --- PERMANENT CHAT DATABASE SYSTEM ---
-def load_chat_history():
-    if os.path.exists(CHAT_HISTORY_FILE):
-        try:
-            with open(CHAT_HISTORY_FILE, "r") as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
+CHARACTERS = st.session_state.characters_db
 
-def save_chat_history(history):
-    with open(CHAT_HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=4)
-
-# --- INITIALIZE THEME AND LOAD CHAT FROM DATABASE ---
 if "theme" not in st.session_state:
     st.session_state.theme = "Dark"
 
-# Load conversation matrix from disk instead of empty dictionary
 if "messages" not in st.session_state:
-    st.session_state.messages = load_chat_history()
+    st.session_state.messages = github_fetch_file(CHAT_HISTORY_FILE, {})
 
 if "last_processed_image" not in st.session_state:
     st.session_state.last_processed_image = None
@@ -167,10 +189,9 @@ with tab_chat:
     
     st.markdown("---")
 
-    # If this specific character doesn't have a history in our file yet, initialize it
     if active_char not in st.session_state.messages:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
-        save_chat_history(st.session_state.messages)
+        github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
 
     # Render previous messages
     for msg in st.session_state.messages[active_char]:
@@ -187,7 +208,6 @@ with tab_chat:
     # Capture chat input text
     user_input = st.chat_input(f"Send a message to {active_char}...")
 
-    # Only process if user typed text OR uploaded an un-processed image
     is_new_image = chat_image_file is not None and chat_image_file.name != st.session_state.last_processed_image
 
     if user_input or is_new_image:
@@ -223,8 +243,8 @@ with tab_chat:
         reply = generate_reply(user_input, active_char, has_image=has_img_flag)
         st.session_state.messages[active_char].append({"role": "assistant", "content": reply, "image": None})
         
-        # Save updated conversation array directly to the server file disk
-        save_chat_history(st.session_state.messages)
+        # Save directly to GitHub
+        github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
         st.rerun()
 
 # ================= TAB 2: ADVANCED CREATION DASHBOARD =================
@@ -269,8 +289,9 @@ with tab_create:
                 "avatar": saved_avatar_path
             }
             
-            with open(CHAR_FILE, "w") as f:
-                json.dump(CHARACTERS, f, indent=4)
+            # Save character list directly to GitHub
+            github_save_file(CHAR_FILE, CHARACTERS)
+            st.session_state.characters_db = CHARACTERS
                 
             st.balloons()
             st.success(f"Successfully deployed {new_name} to the runtime profile index!")
