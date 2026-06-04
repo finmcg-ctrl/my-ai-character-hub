@@ -12,44 +12,14 @@ st.set_page_config(
 )
 
 CHAR_FILE = "custom_characters.json"
+CHAT_HISTORY_FILE = "chat_history.json"  # Permanent storage file for roleplay history
 AVATAR_DIR = "uploaded_avatars"
 CHAT_MEDIA_DIR = "chat_media"  
-HISTORY_FILE = "chat_history.json"  # Permanent file storage matrix
 
 # Ensure necessary directories exist
 for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
-
-# --- INITIALIZE THEME ---
-if "theme" not in st.session_state:
-    st.session_state.theme = "Dark"
-
-# Keep track of the last processed image file name to prevent infinite duplicate loops
-if "last_processed_image" not in st.session_state:
-    st.session_state.last_processed_image = None
-
-# --- DYNAMIC STRUCTURAL CSS INJECTOR ---
-if st.session_state.theme == "Dark":
-    st.markdown("""
-        <style>
-        .stApp { background-color: #0f0f14; color: #cdd6f4; }
-        div[data-testid="stSidebar"] { background-color: #161622; }
-        div.stButton > button:first-child { background-color: #a6e3a1; color: #11111b; font-weight: bold; border-radius: 8px; border: none; }
-        div[data-baseweb="tab-list"] { background-color: #161622; border-radius: 8px; padding: 4px; }
-        div[data-baseweb="tab"] { color: #cdd6f4; font-weight: 500; }
-        </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <style>
-        .stApp { background-color: #f8f9fa; color: #212529; }
-        div[data-testid="stSidebar"] { background-color: #e9ecef; }
-        div.stButton > button:first-child { background-color: #0d6efd; color: #ffffff; font-weight: bold; border-radius: 8px; border: none; }
-        div[data-baseweb="tab-list"] { background-color: #e9ecef; border-radius: 8px; padding: 4px; }
-        div[data-baseweb="tab"] { color: #212529; font-weight: 500; }
-        </style>
-    """, unsafe_allow_html=True)
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
@@ -76,23 +46,55 @@ if os.path.exists(CHAR_FILE):
 else:
     CHARACTERS = DEFAULT_CHARACTERS.copy()
 
+# --- PERMANENT CHAT DATABASE SYSTEM ---
+def load_chat_history():
+    if os.path.exists(CHAT_HISTORY_FILE):
+        try:
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_chat_history(history):
+    with open(CHAT_HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=4)
+
+# --- INITIALIZE THEME AND LOAD CHAT FROM DATABASE ---
+if "theme" not in st.session_state:
+    st.session_state.theme = "Dark"
+
+# Load conversation matrix from disk instead of empty dictionary
+if "messages" not in st.session_state:
+    st.session_state.messages = load_chat_history()
+
+if "last_processed_image" not in st.session_state:
+    st.session_state.last_processed_image = None
+
 if "current_char" not in st.session_state:
     st.session_state.current_char = list(CHARACTERS.keys())[0]
 
-# --- LOAD LONG-TERM PERSISTENT CHAT HISTORY DATABASE ---
-if os.path.exists(HISTORY_FILE):
-    try:
-        with open(HISTORY_FILE, "r") as f:
-            st.session_state.messages = json.load(f)
-    except:
-        st.session_state.messages = {}
+# --- DYNAMIC STRUCTURAL CSS INJECTOR ---
+if st.session_state.theme == "Dark":
+    st.markdown("""
+        <style>
+        .stApp { background-color: #0f0f14; color: #cdd6f4; }
+        div[data-testid="stSidebar"] { background-color: #161622; }
+        div.stButton > button:first-child { background-color: #a6e3a1; color: #11111b; font-weight: bold; border-radius: 8px; border: none; }
+        div[data-baseweb="tab-list"] { background-color: #161622; border-radius: 8px; padding: 4px; }
+        div[data-baseweb="tab"] { color: #cdd6f4; font-weight: 500; }
+        </style>
+    """, unsafe_allow_html=True)
 else:
-    st.session_state.messages = {}
-
-# Helper function to save current chats directly to storage disk
-def save_chat_history():
-    with open(HISTORY_FILE, "w") as f:
-        json.dump(st.session_state.messages, f, indent=4)
+    st.markdown("""
+        <style>
+        .stApp { background-color: #f8f9fa; color: #212529; }
+        div[data-testid="stSidebar"] { background-color: #e9ecef; }
+        div.stButton > button:first-child { background-color: #0d6efd; color: #ffffff; font-weight: bold; border-radius: 8px; border: none; }
+        div[data-baseweb="tab-list"] { background-color: #e9ecef; border-radius: 8px; padding: 4px; }
+        div[data-baseweb="tab"] { color: #212529; font-weight: 500; }
+        </style>
+    """, unsafe_allow_html=True)
 
 # --- CHAI-STYLE ADAPTIVE CHAT RESPONSE LOGIC ---
 def generate_reply(user_msg, char_name, has_image=False):
@@ -142,15 +144,6 @@ with st.sidebar:
     if selected != st.session_state.current_char:
         st.session_state.current_char = selected
         st.rerun()
-        
-    st.markdown("---")
-    # Bonus Feature: Add a reset button to manually clear conversations if you want a clean slate
-    if st.button("🗑️ Clear Active Memory Databases", use_container_width=True):
-        st.session_state.messages = {}
-        if os.path.exists(HISTORY_FILE):
-            os.remove(HISTORY_FILE)
-        st.success("Memory cleared! Reloading...")
-        st.rerun()
 
 # --- CENTRAL APPLICATION MATRIX TABS ---
 tab_chat, tab_create = st.tabs(["💬 AI Chat Dashboard", "🎨 Advanced Character Studio"])
@@ -174,12 +167,12 @@ with tab_chat:
     
     st.markdown("---")
 
-    # If this specific character doesn't have history in the permanent file, initialize it
+    # If this specific character doesn't have a history in our file yet, initialize it
     if active_char not in st.session_state.messages:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
-        save_chat_history()
+        save_chat_history(st.session_state.messages)
 
-    # Render previous messages from file database
+    # Render previous messages
     for msg in st.session_state.messages[active_char]:
         with st.chat_message(msg["role"]):
             if msg.get("image") and os.path.exists(msg["image"]):
@@ -194,6 +187,7 @@ with tab_chat:
     # Capture chat input text
     user_input = st.chat_input(f"Send a message to {active_char}...")
 
+    # Only process if user typed text OR uploaded an un-processed image
     is_new_image = chat_image_file is not None and chat_image_file.name != st.session_state.last_processed_image
 
     if user_input or is_new_image:
@@ -216,7 +210,7 @@ with tab_chat:
             except Exception as e:
                 st.error(f"Failed to process chat image: {e}")
 
-        # Append user message and save to file immediately
+        # Append to message log
         user_message_entry = {
             "role": "user", 
             "content": user_input if user_input else "", 
@@ -224,14 +218,13 @@ with tab_chat:
         }
         st.session_state.messages[active_char].append(user_message_entry)
         
-        # Generate and log character reply
+        # Generate character reply
         has_img_flag = True if saved_chat_img_path else False
         reply = generate_reply(user_input, active_char, has_image=has_img_flag)
         st.session_state.messages[active_char].append({"role": "assistant", "content": reply, "image": None})
         
-        # Lock histories permanently to the database log
-        save_chat_history()
-        
+        # Save updated conversation array directly to the server file disk
+        save_chat_history(st.session_state.messages)
         st.rerun()
 
 # ================= TAB 2: ADVANCED CREATION DASHBOARD =================
