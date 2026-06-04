@@ -26,7 +26,11 @@ for folder in [AVATAR_DIR, CHAT_MEDIA_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-# Helper function to read from GitHub DB
+# Display a helper alert if the secret variable isn't configured in Streamlit Cloud
+if not TOKEN:
+    st.warning("⚠️ Database Warning: `GITHUB_TOKEN` was not found inside your Streamlit Secrets vault. Your chats are currently running on temporary memory.")
+
+# Helper function to read from GitHub DB with explicit error logs
 def github_fetch_file(filename, default_data):
     if not TOKEN:
         return default_data
@@ -38,11 +42,16 @@ def github_fetch_file(filename, default_data):
             content = response.json()
             file_content = base64.b64decode(content["content"]).decode("utf-8")
             return json.loads(file_content)
-    except:
-        pass
+        elif response.status_code == 401 or response.status_code == 403:
+            st.error(f"❌ GitHub Authorization Failed (Status {response.status_code}). Check your Personal Access Token scopes.")
+        elif response.status_code == 404:
+            # File doesn't exist yet, this is normal for a fresh build
+            return default_data
+    except Exception as e:
+        st.error(f"🔌 Database Connection Error: {e}")
     return default_data
 
-# Helper function to save to GitHub DB
+# Helper function to save to GitHub DB with explicit error logs
 def github_save_file(filename, data):
     if not TOKEN:
         return
@@ -60,9 +69,11 @@ def github_save_file(filename, data):
         if sha:
             payload["sha"] = sha
             
-        requests.put(url, headers=headers, json=payload)
-    except:
-        pass
+        res = requests.put(url, headers=headers, json=payload)
+        if res.status_code not in [200, 201]:
+            st.error(f"❌ Could not write back to GitHub database. Status Code: {res.status_code}. Response: {res.text}")
+    except Exception as e:
+        st.error(f"💾 Failed to commit data packet: {e}")
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
