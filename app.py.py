@@ -100,13 +100,18 @@ if "last_processed_image" not in st.session_state:
 if "current_char" not in st.session_state:
     st.session_state.current_char = list(CHARACTERS.keys())[0]
 
+# --- INITIALIZE INLINE UTILITY EDITS CONTROLS ---
+if "editing_idx" not in st.session_state:
+    st.session_state.editing_idx = None
+
 # --- DYNAMIC STRUCTURAL CSS INJECTOR ---
 if st.session_state.theme == "Dark":
     st.markdown("""
         <style>
         .stApp { background-color: #0f0f14; color: #cdd6f4; }
         div[data-testid="stSidebar"] { background-color: #161622; }
-        div.stButton > button:first-child { background-color: #a6e3a1; color: #11111b; font-weight: bold; border-radius: 8px; border: none; }
+        div.stButton > button { background-color: #252538; color: #cdd6f4; border: 1px solid #3b4261; border-radius: 6px; padding: 2px 10px; font-size: 12px; }
+        div.stButton > button:hover { border-color: #a6e3a1; color: #a6e3a1; }
         div[data-baseweb="tab-list"] { background-color: #161622; border-radius: 8px; padding: 4px; }
         div[data-baseweb="tab"] { color: #cdd6f4; font-weight: 500; }
         </style>
@@ -116,7 +121,8 @@ else:
         <style>
         .stApp { background-color: #f8f9fa; color: #212529; }
         div[data-testid="stSidebar"] { background-color: #e9ecef; }
-        div.stButton > button:first-child { background-color: #0d6efd; color: #ffffff; font-weight: bold; border-radius: 8px; border: none; }
+        div.stButton > button { background-color: #ffffff; color: #212529; border: 1px solid #ced4da; border-radius: 6px; padding: 2px 10px; font-size: 12px; }
+        div.stButton > button:hover { border-color: #0d6efd; color: #0d6efd; }
         div[data-baseweb="tab-list"] { background-color: #e9ecef; border-radius: 8px; padding: 4px; }
         div[data-baseweb="tab"] { color: #212529; font-weight: 500; }
         </style>
@@ -169,6 +175,7 @@ with st.sidebar:
     selected = st.radio("Active Conversations:", list(CHARACTERS.keys()))
     if selected != st.session_state.current_char:
         st.session_state.current_char = selected
+        st.session_state.editing_idx = None  # Reset edit focus on swap
         st.rerun()
 
 # --- CENTRAL APPLICATION MATRIX TABS ---
@@ -197,78 +204,81 @@ with tab_chat:
         st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
         github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
 
-    # Render previous logs with numbered reference chips so the user knows which index to modify
+    # --- INLINE MESSAGE CHAI TOOL HUB ENGINE ---
     for index, msg in enumerate(st.session_state.messages[active_char]):
-        role_label = f"🤖 {active_char}" if msg["role"] == "assistant" else "👤 You"
         with st.chat_message(msg["role"]):
-            st.markdown(f"<span style='font-size:11px; color:#888a9e; float:right;'>ID: #{index}</span>", unsafe_allow_html=True)
             if msg.get("image") and os.path.exists(msg["image"]):
                 st.image(msg["image"], width=250)
-            if msg["content"]:
-                st.write(msg["content"])
+            
+            # Inline Text Edit Area Focus Mode
+            if st.session_state.editing_idx == index:
+                edited_input = st.text_input("Edit text line packet:", value=msg["content"], key=f"edit_field_{index}")
+                c_save, c_cancel = st.columns([1, 9])
+                with c_save:
+                    if st.button("💾 Save", key=f"save_btn_{index}"):
+                        st.session_state.messages[active_char][index]["content"] = edited_input
+                        github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                        st.session_state.editing_idx = None
+                        st.rerun()
+                with c_cancel:
+                    if st.button("❌ Cancel", key=f"cancel_btn_{index}"):
+                        st.session_state.editing_idx = None
+                        st.rerun()
+            else:
+                if msg["content"]:
+                    st.write(msg["content"])
+                
+                # --- CHAI STYLE BUTTON LAYOUT INJECTORS ---
+                if msg["role"] == "assistant":
+                    # Bot options: Edit, Regenerate, Delete (Exclude regenerate on greeting)
+                    col_b1, col_b2, col_b3, col_empty = st.columns([1.2, 1.6, 1.2, 8])
+                    with col_b1:
+                        if st.button("✏️ Edit", key=f"edit_bot_{index}"):
+                            st.session_state.editing_idx = index
+                            st.rerun()
+                    with col_b2:
+                        if index > 0: # Greeting can't re-roll
+                            if st.button("🔄 Re-roll", key=f"roll_bot_{index}"):
+                                # Look backward to grab user input query context
+                                preceding_input = ""
+                                for k in range(index - 1, -1, -1):
+                                    if st.session_state.messages[active_char][k]["role"] == "user":
+                                        preceding_input = st.session_state.messages[active_char][k]["content"]
+                                        break
+                                fresh_response = generate_reply(preceding_input, active_char, has_image=False)
+                                st.session_state.messages[active_char][index]["content"] = fresh_response
+                                github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                                st.rerun()
+                    with col_b3:
+                        if st.button("🗑️ Delete", key=f"del_bot_{index}"):
+                            st.session_state.messages[active_char].pop(index)
+                            if len(st.session_state.messages[active_char]) == 0:
+                                st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
+                            github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                            st.rerun()
+                else:
+                    # User options: Edit, Delete
+                    col_u1, col_u2, col_empty = st.columns([1.2, 1.2, 9])
+                    with col_u1:
+                        if st.button("✏️ Edit", key=f"edit_usr_{index}"):
+                            st.session_state.editing_idx = index
+                            st.rerun()
+                    with col_u2:
+                        if st.button("🗑️ Delete", key=f"del_usr_{index}"):
+                            st.session_state.messages[active_char].pop(index)
+                            github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
+                            st.rerun()
 
     st.markdown("---")
 
-    # ================= CHAI CHAT EDIT & MODIFICATION ENGINE =================
-    if len(st.session_state.messages[active_char]) > 1:
-        with st.expander("⚙️ Chai Engine Toolkit: Edit, Re-roll, or Delete Messages"):
-            msg_options = [f"#{i} [{st.session_state.messages[active_char][i]['role'].upper()}]: {st.session_state.messages[active_char][i]['content'][:30]}..." 
-                           for i in range(len(st.session_state.messages[active_char]))]
-            
-            selected_msg_str = st.selectbox("Select message to modify:", msg_options, index=len(msg_options)-1)
-            selected_idx = int(selected_msg_str.split(" ")[0].replace("#", ""))
-            target_msg = st.session_state.messages[active_char][selected_idx]
-            
-            col_ed1, col_ed2, col_ed3 = st.columns(3)
-            
-            with col_ed1:
-                # --- EDIT OPTION ---
-                new_text = st.text_input("Rewrite message text:", value=target_msg["content"])
-                if st.button("💾 Save Edit", use_container_width=True):
-                    st.session_state.messages[active_char][selected_idx]["content"] = new_text
-                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
-                    st.rerun()
-                    
-            with col_ed2:
-                # --- REGENERATE / RE-ROLL OPTION ---
-                st.markdown("<p style='margin-bottom:12px;'></p>", unsafe_allow_html=True)
-                if st.button("🔄 Regenerate AI Reply", use_container_width=True, help="Re-rolls the response using preceding dialogue context"):
-                    # Find the last user input text present before this AI message
-                    context_input = ""
-                    for k in range(selected_idx - 1, -1, -1):
-                        if st.session_state.messages[active_char][k]["role"] == "user":
-                            context_input = st.session_state.messages[active_char][k]["content"]
-                            break
-                    
-                    # Generate a fresh reply string variance
-                    fresh_reply = generate_reply(context_input, active_char, has_image=False)
-                    
-                    # If target is an assistant message, overwrite it. If it's a user message, overwrite the following assistant reply.
-                    if target_msg["role"] == "assistant":
-                        st.session_state.messages[active_char][selected_idx]["content"] = fresh_reply
-                    elif selected_idx + 1 < len(st.session_state.messages[active_char]):
-                        st.session_state.messages[active_char][selected_idx + 1]["content"] = fresh_reply
-                        
-                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
-                    st.rerun()
-                    
-            with col_ed3:
-                # --- INDIVIDUAL FILE LINE ERASURE ---
-                st.markdown("<p style='margin-bottom:12px;'></p>", unsafe_allow_html=True)
-                if st.button("🗑️ Erase This Message", use_container_width=True):
-                    st.session_state.messages[active_char].pop(selected_idx)
-                    # Safety recovery: ensure greeting anchor remains intact
-                    if len(st.session_state.messages[active_char]) == 0:
-                        st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info["greeting"], "image": None}]
-                    github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
-                    st.rerun()
+    # --- INPUT HUD ZONE GRID (IMAGE ATTACHMENT AND MESSAGE INPUT COLLABORATION) ---
+    col_upload_box, col_input_box = st.columns([3, 7])
+    
+    with col_upload_box:
+        chat_image_file = st.file_uploader("📎 Attach Media Packet:", type=["png", "jpg", "jpeg"])
 
-    # --- IMAGE ATTACHMENT HUB ---
-    st.markdown("<p style='font-size:13px; margin-bottom: -15px;'>📎 Attach an image to your message:</p>", unsafe_allow_html=True)
-    chat_image_file = st.file_uploader("", type=["png", "jpg", "jpeg"], key="chat_uploader", label_visibility="collapsed")
-
-    # Capture chat input text safely
-    user_input = st.chat_input(f"Send a message to {active_char}...")
+    with col_input_box:
+        user_input = st.chat_input(f"Send a message to {active_char}...")
 
     is_new_image = chat_image_file is not None and chat_image_file.name != st.session_state.last_processed_image
 
