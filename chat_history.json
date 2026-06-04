@@ -4,6 +4,16 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "hey",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*smirks* That is an interesting transmission line. Tell me more.",
+            "image": null
         }
     ]
 }
