@@ -4,11 +4,6 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*crosses arms* I hear you loud and clear on that packet data. Let's dig deeper into what you mean by that.",
-            "image": null
         }
     ]
 }
