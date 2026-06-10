@@ -6,11 +6,6 @@
             "image": null
         },
         {
-            "role": "user",
-            "content": "how are you?",
-            "image": null
-        },
-        {
             "role": "assistant",
             "content": "*smirks* That is an interesting transmission line. Tell me more.",
             "image": null
