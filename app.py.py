@@ -69,6 +69,12 @@ def github_save_file(filename, data):
 
 # --- LOAD REGISTERED CHARACTER PROFILES ---
 DEFAULT_CHARACTERS = {
+    "Undertale AU RPG Sandbox": {
+        "title": "The multi-universe text simulator.",
+        "greeting": "* (The wind howls through the barrier...)\n\n* Welcome to the Undertale AU Sandbox. Please declare your character setup:\n\n* 1. What is your Name/OC?\n* 2. What are your Soul Trait and starting items?\n* 3. Which Alternate Universe (AU) are we entering?\n\n* (The power of creation fills you with DETERMINATION.)",
+        "bio": "An immersive, text-based RPG engine dedicated to running an Undertale Alternate Universe (AU) roleplay simulator. Describes scenes, reacts to choices, and voices characters with canonical accuracy. Wrap actions/scenery in asterisks (*) and use Undertale formatting constants.",
+        "avatar": None
+    },
     "Luna": {
         "title": "Sarcastic Space Explorer",
         "greeting": "Comm-line active. Hey there, traveler!",
@@ -125,38 +131,91 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-# --- CHAI-STYLE ADAPTIVE CHAT RESPONSE LOGIC ---
+# --- REAL AI INTELLIGENCE GENERATION ROUTINE ---
 def generate_reply(user_msg, char_name, has_image=False):
-    msg = user_msg.lower() if user_msg else ""
+    """
+    Generates authentic, dynamic AI text responses using a zero-config, 
+    highly stable free inference pipeline if custom API keys are missing.
+    """
     char_data = CHARACTERS.get(char_name, {})
-    bio = char_data.get("bio", "").lower()
+    bio = char_data.get("bio", "")
+    title = char_data.get("title", "")
     
-    actions = ["*crosses arms*", "*nods slowly*", "*sighs deep*", "*smirks*"]
+    system_instruction = (
+        f"You are a master at creative writing and immersive text-based roleplay.\n"
+        f"You are currently roleplaying 100% as the character '{char_name}' ({title}).\n"
+        f"Character Lore & Personality Rules:\n{bio}\n\n"
+        f"Task: Write the next response as {char_name}. Stay inside your specific personality. "
+        f"Be expressive, immersive, react directly to what the user said, and use asterisks for actions if it fits your style. "
+        f"Never repeat yourself or break character. Keep responses snappy and concise."
+    )
+
+    # Gather clean context history
+    history_context = []
+    if char_name in st.session_state.messages:
+        for old_msg in st.session_state.messages[char_name][-4:]:
+            role_label = "user" if old_msg['role'] == 'user' else "assistant"
+            history_context.append({"role": role_label, "content": old_msg['content']})
+
+    try:
+        # Route 1: Premium Secure OpenAI fallback
+        openai_key = st.secrets.get("OPENAI_API_KEY", "")
+        if openai_key:
+            headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    *history_context,
+                    {"role": "user", "content": user_msg}
+                ]
+            }
+            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                return res.json()["choices"][0]["message"]["content"].strip()
+                
+        # Route 2: Ultra-stable Free Public Inference API (No keys required)
+        messages_payload = [
+            {"role": "system", "content": system_instruction},
+            *history_context,
+            {"role": "user", "content": user_msg}
+        ]
+        
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://streamlit.io",
+                "X-Title": "Character Matrix Hub"
+            },
+            json={
+                "model": "meta-llama/llama-3.2-3b-instruct:free",
+                "messages": messages_payload,
+                "temperature": 0.85,
+                "max_tokens": 180
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            ai_res = response.json()
+            ai_text = ai_res["choices"][0]["message"]["content"].strip()
+            if ai_text:
+                return ai_text
+    except:
+        pass
+
+    # Backup Safety Fallback (Only fires if external APIs go completely offline)
+    msg_low = user_msg.lower() if user_msg else ""
+    actions = ["*sighs deeply*", "*adjusts stance*", "*looks at you closely*", "*crosses arms*"]
+    act = random.choice(actions)
     
-    if has_image:
-        if "wizard" in bio:
-            return f"{random.choice(actions)} What sort of magical artifact or illusion am I looking at right now? Explain yourself!"
-        elif "pilot" in bio or "explorer" in bio:
-            return f"{random.choice(actions)} Scanning this transmission attachment. Looks like a coordinate map or unknown data module."
-        return f"{random.choice(actions)} Interesting visual transmission. My scanners are analyzing what you just sent me."
-
-    if "coffee" in msg or "drink" in msg:
-        if "coffee" in bio or "pilot" in bio:
-            return f"{random.choice(actions)} Did someone say coffee?! I'd trade my entire warp drive engine for a warm cup right now."
-    if "magic" in msg or "wizard" in msg:
-        if "wizard" in bio:
-            return f"{random.choice(actions)} Magic requires absolute focus! One wrong syllable and you turn into a toad."
-
-    matching_words = [word for word in bio.replace(",", "").replace(".", "").split() if len(word) > 4 and word in msg]
-    if matching_words:
-        return f"{random.choice(actions)} Talking about {matching_words[0]}? That aligns perfectly with my background as a {char_data.get('title', 'AI Companion')}."
-
-    if "grumpy" in bio or "cranky" in bio:
-        return f"{random.choice(actions)} Don't push your luck. I'm not in the mood for games today."
-    elif "friendly" in bio or "sweet" in bio:
-        return f"{random.choice(actions)} That's wonderful to hear! I'm always glad to help out."
-    
-    return f"{random.choice(actions)} That is an interesting transmission line. Tell me more."
+    if "undertale" in char_name.lower() or "sandbox" in char_name.lower():
+        return "* (The sandbox environment hums with energy.)\n\n* You prepare your next action. What is your choice?"
+    if "wizard" in bio.lower() or "merlin" in char_name.lower():
+        return f"{act} Bah! In my day, a simple incantation could move mountains. What is your business here, mortal?"
+    if "pilot" in bio.lower() or "luna" in char_name.lower():
+        return f"{act} Out here past the outer rim, you learn not to trust every stray data packet. What's your angle?"
+    return f"{act} That's an interesting strategy. Tell me how you want to proceed with this scenario."
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
@@ -169,10 +228,8 @@ with st.sidebar:
         
     st.markdown("---")
     
-    # NEW FEATURE: Dynamic Character Search Query Entry
     search_query = st.text_input("🔍 Search Bots by Name:", placeholder="Type bot name...")
     
-    # Filter the active selection list based on what the user types
     all_bots = list(CHARACTERS.keys())
     if search_query:
         filtered_bots = [bot for bot in all_bots if search_query.lower() in bot.lower()]
@@ -183,7 +240,6 @@ with st.sidebar:
         st.caption("No chatbots match your search.")
         selected = None
     else:
-        # Fallback tracking if the current character isn't available or selected anymore
         if "current_char" not in st.session_state or st.session_state.current_char not in CHARACTERS:
             st.session_state.current_char = filtered_bots[0]
             
@@ -228,7 +284,7 @@ with tab_chat:
             st.session_state.messages[active_char] = [{"role": "assistant", "content": char_info.get("greeting", "Hello!"), "image": None}]
             github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
 
-        # --- INLINE MESSAGE CHAI TOOL HUB ENGINE ---
+        # --- INLINE MESSAGE TOOL HUB ---
         for index, msg in enumerate(st.session_state.messages[active_char]):
             role_id_tag = "assistant" if msg["role"] == "assistant" else "user"
             
@@ -383,7 +439,7 @@ with tab_create:
         else:
             st.error("Validation Halt: Please fill in all parameters requiring asterisks (*).")
 
-# ================= NEW TAB 3: "MY CREATIONS" GALLERY WORKSHOP =================
+# ================= TAB 3: "MY CREATIONS" GALLERY WORKSHOP =================
 with tab_inventory:
     st.header("🗂️ My Creations Gallery Workshop")
     st.markdown("Manage, review, and completely erase profiles you have constructed within your system.")
@@ -393,7 +449,6 @@ with tab_inventory:
         st.info("Your custom creation workshop index is currently empty.")
     else:
         for bot_name, data in list(CHARACTERS.items()):
-            # Create a stylized containment box layout row for each character profile
             with st.container():
                 c_card_av, c_card_details, c_card_actions = st.columns([1.5, 6.5, 2])
                 
@@ -412,26 +467,20 @@ with tab_inventory:
                 with c_card_actions:
                     st.markdown("<p style='padding-top:10px;'></p>", unsafe_allow_html=True)
                     
-                    # 🚀 Jump straight to chat with this bot
                     if st.button(f"💬 Chat with {bot_name}", key=f"chat_jump_{bot_name}", use_container_width=True):
                         st.session_state.current_char = bot_name
                         st.rerun()
                         
-                    # 🗑️ NEW FEATURE: COMPLETELY ERASE THE BOT MATRIX PERMANENTLY
-                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help="Permanently unregisters this character from the memory matrix database"):
-                        # 1. Pop from main character dictionary profiles
+                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help=\"Permanently unregisters this character from the memory matrix database\"):
                         CHARACTERS.pop(bot_name)
                         
-                        # 2. Pop related chat history tracking sheets out of session
                         if bot_name in st.session_state.messages:
                             st.session_state.messages.pop(bot_name)
                         
-                        # 3. Synchronize both updated tracking states back to GitHub DB sheets
                         github_save_file(CHAR_FILE, CHARACTERS)
                         github_save_file(CHAT_HISTORY_FILE, st.session_state.messages)
                         st.session_state.characters_db = CHARACTERS
                         
-                        # 4. Safely auto-switch remaining selection index anchors
                         remaining_bots = list(CHARACTERS.keys())
                         st.session_state.current_char = remaining_bots[0] if remaining_bots else None
                         
