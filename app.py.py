@@ -134,30 +134,36 @@ else:
 # --- REAL AI INTELLIGENCE GENERATION ROUTINE ---
 def generate_reply(user_msg, char_name, has_image=False):
     """
-    Connects your chat input directly to a real AI layout instead of repetitive text loops.
+    Upgraded version: Generates authentic, dynamic AI text responses using a 
+    free open-source model endpoint if custom API keys are missing.
     """
     char_data = CHARACTERS.get(char_name, {})
     bio = char_data.get("bio", "")
     title = char_data.get("title", "")
     
-    # System identity packet instructions for the AI model
     system_instruction = (
-        f"You are a dedicated creative roleplay companion. You are currently acting completely as the character: {char_name}.\n"
-        f"Character Sub-Title Context: {title}\n"
-        f"Core Personality/Behavior Rules/Guidelines:\n{bio}\n\n"
-        f"CRITICAL: Stay 100% inside your character persona at all times. Respond directly to the user's input. "
-        f"Never use generic placeholder phrases. Write dynamically and organically using actions wrapped in asterisks (*) where appropriate."
+        f"You are a master at creative writing and text-based roleplay.\n"
+        f"You are currently roleplaying 100% as the character '{char_name}' ({title}).\n"
+        f"Character Lore & Personality Rules:\n{bio}\n\n"
+        f"Task: Write the next response as {char_name}. Stay inside your specific personality. "
+        f"Be expressive, immersive, react directly to what the user said, and use asterisks for actions if it fits your style. "
+        f"Never repeat yourself or break character."
     )
-    
-    # Grab previous chat lines for memory context
+
     history_context = ""
     if char_name in st.session_state.messages:
-        for old_msg in st.session_state.messages[char_name][-6:]: # feed recent memory loops
-            history_context += f"{old_msg['role']}: {old_msg['content']}\n"
-            
-    # Try using your secure OpenAI or Gemini system integration if available, fallback to high-quality sandbox processing
+        for old_msg in st.session_state.messages[char_name][-4:]:
+            role_label = "User" if old_msg['role'] == 'user' else char_name
+            history_context += f"{role_label}: {old_msg['content']}\n"
+
+    full_prompt = (
+        f"<|system|>\n{system_instruction}\n"
+        f"<|history|>\n{history_context}"
+        f"User: {user_msg}\n"
+        f"{char_name}:"
+    )
+
     try:
-        # Check for OpenAI Key configurations or generic API routes
         openai_key = st.secrets.get("OPENAI_API_KEY", "")
         if openai_key:
             headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
@@ -171,25 +177,40 @@ def generate_reply(user_msg, char_name, has_image=False):
             res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=10)
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"].strip()
+                
+        # FREE PUBLIC ROUTE
+        API_URL = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct"
+        response = requests.post(
+            API_URL, 
+            json={"inputs": full_prompt, "parameters": {"max_new_tokens": 150, "temperature": 0.8, "return_full_text": False}}, 
+            timeout=8
+        )
+        if response.status_code == 200:
+            res_json = response.json()
+            if isinstance(res_json, list) and "generated_text" in res_json[0]:
+                ai_text = res_json[0]["generated_text"].strip()
+                ai_text = ai_text.split("User:")[0].split("<|")[0].strip()
+                if ai_text:
+                    return ai_text
     except:
         pass
 
-    # High-quality smart contextual rule parser if API keys are offline
-    msg = user_msg.lower() if user_msg else ""
-    if "undertale" in char_name.lower() or "rpg" in char_name.lower():
-        if "gilly" in msg or "human" in msg:
-            return "* (The space around you warps... The heavy scent of pine needles and cold frost hits your face.)\n\n* Gilly... Your cracked Determination soul throbs faintly inside your chest.\n\n* Welcome to Underfell Snowdin. The snow crunches under your boots. A dark silhouette stands near the tree line.\n\n* What do you do?\n[ FIGHT ]   [ ACT ]   [ ITEM ]   [ MERCY ]"
-        return f"* (The sandbox logs your command...)\n\n* You prepare to act. The environmental parameters adjust to your declaration. What path do you wish to tread next?"
+    msg_low = user_msg.lower() if user_msg else ""
+    actions = ["*sighs deeply*", "*adjusts stance*", "*looks at you closely*", "*crosses arms*"]
+    act = random.choice(actions)
+    
+    if "undertale" in char_name.lower() or "sandbox" in char_name.lower():
+        if "gilly" in msg_low or "human" in msg_low:
+            return "* (The wind howls fiercely through the trees...)\n\n* A human...? Your cracked Determination soul reacts to the bitter chill of Underfell Snowdin.\n\n* A shadowy figure watches you from behind a dynamic checkpoint station.\n\n* What will you do?\n[ FIGHT ]   [ ACT ]   [ ITEM ]   [ MERCY ]"
+        return "* (The sandbox environment hums with energy.)\n\n* You prepare your next action. What is your choice?"
         
-    actions = ["*crosses arms*", "*nods slowly*", "*sighs deep*", "*smirks*", "*checks watch*"]
-    if "coffee" in msg or "drink" in msg:
-        if "coffee" in bio.lower() or "pilot" in bio.lower():
-            return "*grabs mug* Finally, someone gets it. This warp deck's espresso machine is completely shot, so I'm running on pure spite right now."
-    if "magic" in msg or "wizard" in msg:
-        if "wizard" in bio.lower():
-            return "*waves staff grumpily* Magic isn't some child's parlor trick! Keep talking like that and I'll turn your shoes into slithering vipers."
-            
-    return f"{random.choice(actions)} I hear you loud and clear on that packet data. Let's dig deeper into what you mean by that."
+    if "wizard" in bio.lower() or "merlin" in char_name.lower():
+        return f"{act} Bah! You speak of modern ideas. In my day, a simple incantation could move mountains. What is your true business here?"
+        
+    if "pilot" in bio.lower() or "luna" in char_name.lower():
+        return f"{act} Tracking that sensor sweep data now. Out here past the outer rim, you learn not to trust every incoming transmission packet. What's your play?"
+
+    return f"{act} That's a unique perspective. Tell me how you want to proceed with this matrix scenario."
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
