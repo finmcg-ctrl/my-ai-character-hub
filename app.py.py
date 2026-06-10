@@ -471,7 +471,7 @@ with tab_inventory:
                         st.session_state.current_char = bot_name
                         st.rerun()
                         
-                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help=\"Permanently unregisters this character from the memory matrix database\"):
+                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help="Permanently unregisters this character from the memory matrix database"):
                         CHARACTERS.pop(bot_name)
                         
                         if bot_name in st.session_state.messages:
