@@ -134,36 +134,31 @@ else:
 # --- REAL AI INTELLIGENCE GENERATION ROUTINE ---
 def generate_reply(user_msg, char_name, has_image=False):
     """
-    Upgraded version: Generates authentic, dynamic AI text responses using a 
-    free open-source model endpoint if custom API keys are missing.
+    Generates authentic, dynamic AI text responses using a zero-config, 
+    highly stable free inference pipeline if custom API keys are missing.
     """
     char_data = CHARACTERS.get(char_name, {})
     bio = char_data.get("bio", "")
     title = char_data.get("title", "")
     
     system_instruction = (
-        f"You are a master at creative writing and text-based roleplay.\n"
+        f"You are a master at creative writing and immersive text-based roleplay.\n"
         f"You are currently roleplaying 100% as the character '{char_name}' ({title}).\n"
         f"Character Lore & Personality Rules:\n{bio}\n\n"
         f"Task: Write the next response as {char_name}. Stay inside your specific personality. "
         f"Be expressive, immersive, react directly to what the user said, and use asterisks for actions if it fits your style. "
-        f"Never repeat yourself or break character."
+        f"Never repeat yourself or break character. Keep responses snappy and concise."
     )
 
-    history_context = ""
+    # Gather clean context history
+    history_context = []
     if char_name in st.session_state.messages:
         for old_msg in st.session_state.messages[char_name][-4:]:
-            role_label = "User" if old_msg['role'] == 'user' else char_name
-            history_context += f"{role_label}: {old_msg['content']}\n"
-
-    full_prompt = (
-        f"<|system|>\n{system_instruction}\n"
-        f"<|history|>\n{history_context}"
-        f"User: {user_msg}\n"
-        f"{char_name}:"
-    )
+            role_label = "user" if old_msg['role'] == 'user' else "assistant"
+            history_context.append({"role": role_label, "content": old_msg['content']})
 
     try:
+        # Route 1: Premium Secure OpenAI fallback
         openai_key = st.secrets.get("OPENAI_API_KEY", "")
         if openai_key:
             headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
@@ -171,13 +166,56 @@ def generate_reply(user_msg, char_name, has_image=False):
                 "model": "gpt-4o-mini",
                 "messages": [
                     {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": f"Chat History:\n{history_context}\nCurrent User Input: {user_msg}"}
+                    *history_context,
+                    {"role": "user", "content": user_msg}
                 ]
             }
             res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=10)
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"].strip()
                 
+        # Route 2: Ultra-stable Free Public Inference API (No keys required)
+        messages_payload = [
+            {"role": "system", "content": system_instruction},
+            *history_context,
+            {"role": "user", "content": user_msg}
+        ]
+        
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://streamlit.io",
+                "X-Title": "Character Matrix Hub"
+            },
+            json={
+                "model": "meta-llama/llama-3.2-3b-instruct:free",
+                "messages": messages_payload,
+                "temperature": 0.85,
+                "max_tokens": 180
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            ai_res = response.json()
+            ai_text = ai_res["choices"][0]["message"]["content"].strip()
+            if ai_text:
+                return ai_text
+    except:
+        pass
+
+    # Backup Safety Fallback (Only fires if external APIs go completely offline)
+    msg_low = user_msg.lower() if user_msg else ""
+    actions = ["*sighs deeply*", "*adjusts stance*", "*looks at you closely*", "*crosses arms*"]
+    act = random.choice(actions)
+    
+    if "undertale" in char_name.lower() or "sandbox" in char_name.lower():
+        return "* (The sandbox environment hums with energy.)\n\n* You prepare your next action. What is your choice?"
+    if "wizard" in bio.lower() or "merlin" in char_name.lower():
+        return f"{act} Bah! In my day, a simple incantation could move mountains. What is your business here, mortal?"
+    if "pilot" in bio.lower() or "luna" in char_name.lower():
+        return f"{act} Out here past the outer rim, you learn not to trust every stray data packet. What's your angle?"
+    return f"{act} That's an interesting strategy. Tell me how you want to proceed with this scenario."
         # FREE PUBLIC ROUTE
         API_URL = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-7B-Instruct"
         response = requests.post(
