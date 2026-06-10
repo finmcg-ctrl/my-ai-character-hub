@@ -6,8 +6,13 @@
             "image": null
         },
         {
+            "role": "user",
+            "content": "hello",
+            "image": null
+        },
+        {
             "role": "assistant",
-            "content": "*smirks* That is an interesting transmission line. Tell me more.",
+            "content": "*checks watch* I hear you loud and clear on that packet data. Let's dig deeper into what you mean by that.",
             "image": null
         }
     ]
