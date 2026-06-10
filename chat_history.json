@@ -14,6 +14,16 @@
             "role": "assistant",
             "content": "*checks watch* I hear you loud and clear on that packet data. Let's dig deeper into what you mean by that.",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "how are you today",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*crosses arms* I hear you loud and clear on that packet data. Let's dig deeper into what you mean by that.",
+            "image": null
         }
     ]
 }
