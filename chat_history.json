@@ -21,6 +21,16 @@
             "role": "assistant",
             "content": "***`\"Welcome to Undertale RPG! Here, you can RP as a Human or as a Monster from Undertale, and go on amazing adventures!!\"`***\n\n***`\"It can take place in any AU. You can even be an OC and use an AU you made yourself.\"`***\n\n***`\"Please tell me what character you\u2019d like to be, and if you want to be Underground or on the Surface.\"`***",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "*Gilly Snuggles closer to Chara Dreemurr burying her face in the crook of his red vitiligo patches covered scarred scar covered neck.*",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*nods slowly* That is an interesting transmission line. Tell me more.",
+            "image": null
         }
     ]
 }
