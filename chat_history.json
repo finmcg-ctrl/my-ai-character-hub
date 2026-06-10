@@ -4,11 +4,6 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*adjusts stance* Tracking that sensor sweep data now. Out here past the outer rim, you learn not to trust every incoming transmission packet. What's your play?",
-            "image": null
         }
     ]
 }
