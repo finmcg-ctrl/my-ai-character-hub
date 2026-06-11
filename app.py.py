@@ -138,60 +138,93 @@ def generate_reply(user_msg, char_name, has_image=False):
     title = char_data.get("title", "")
     
     system_instruction = (
-        f"You are roleplaying 100% as the character '{char_name}' ({title}).\n"
-        f"Personality context and guidelines:\n{bio}\n\n"
-        f"Respond to the user naturally in character. Keep answers concise, creative, and immersive."
+        f"You are a dedicated creative roleplay companion. You are currently acting completely as the character: {char_name}.\n"
+        f"Character Sub-Title Context: {title}\n"
+        f"Core Personality/Behavior Rules/Guidelines:\n{bio}\n\n"
+        f"Stay inside your character persona. Respond directly, naturally, and creatively to the user's input."
     )
-
-    # Form clean context chat array for the AI engine
-    messages_payload = [{"role": "system", "content": system_instruction}]
     
+    # Construct structured conversation messages for API endpoints
+    api_messages = [
+        {"role": "system", "content": system_instruction}
+    ]
+    
+    # Feed recent memory limits to prevent chat history overload crash
     if char_name in st.session_state.messages:
         for old_msg in st.session_state.messages[char_name][-5:]:
             role_label = "user" if old_msg['role'] == 'user' else "assistant"
             if old_msg.get('content'):
-                messages_payload.append({"role": role_label, "content": old_msg['content']})
+                api_messages.append({"role": role_label, "content": old_msg['content']})
+                
+    api_messages.append({"role": "user", "content": user_msg if user_msg else "Hello!"})
 
-    try:
-        # Check for premium optional keys first
-        openai_key = st.secrets.get("OPENAI_API_KEY", "")
-        if openai_key:
+    # --- ROUTE 1: PRIVATE SECRETS API CHECK ---
+    openai_key = st.secrets.get("OPENAI_API_KEY", "")
+    if openai_key:
+        try:
             headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
-            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json={"model": "gpt-4o-mini", "messages": messages_payload}, timeout=10)
+            payload = {"model": "gpt-4o-mini", "messages": api_messages, "temperature": 0.8}
+            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=8)
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"].strip()
+        except:
+            pass
 
-        # Zero-Config completely free public fallback model router
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://streamlit.io",
-                "X-Title": "Character Matrix Hub"
-            },
-            json={
-                "model": "meta-llama/llama-3.2-3b-instruct:free",
-                "messages": messages_payload,
-                "temperature": 0.85,
-                "max_tokens": 150
-            },
-            timeout=12
-        )
-        if response.status_code == 200:
-            data = response.json()
-            if "choices" in data and len(data["choices"]) > 0:
-                reply_content = data["choices"][0]["message"]["content"].strip()
-                if reply_content:
-                    return reply_content
+    # --- ROUTE 2: PUBLIC FREE-TIER API ROUTER (NO KEYS NEEDED) ---
+    try:
+        fallback_url = "https://openrouter.ai/api/v1/chat/completions"
+        fallback_headers = {
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://streamlit.io",
+            "X-Title": "Character Hub Matrix Sandbox"
+        }
+        fallback_payload = {
+            "model": "meta-llama/llama-3.2-3b-instruct:free",
+            "messages": api_messages,
+            "temperature": 0.8
+        }
+        res = requests.post(fallback_url, headers=fallback_headers, json=fallback_payload, timeout=10)
+        if res.status_code == 200:
+            result_json = res.json()
+            if "choices" in result_json and len(result_json["choices"]) > 0:
+                ai_text = result_json["choices"][0]["message"]["content"].strip()
+                if ai_text:
+                    return ai_text
     except:
         pass
 
-    # Complete fail-safe text string fallback generator if the external network cuts off entirely
-    actions = ["*sighs*", "*shrugs*", "*smiles*", "*crosses arms*", "*blinks*"]
-    act = random.choice(actions)
-    if "undertale" in char_name.lower():
-        return "* (The sandbox system is experiencing static connection noise... Please re-enter your structural command.)"
-    return f"{act} I'm catching a bit of interference out here. What was that again?"
+    # --- ROUTE 3: HIGH-VARIANCE SMART LOCAL FALLBACK GENERATOR ---
+    # This prevents the exact same line from showing up twice in a row if the user's internet drops out
+    msg_lower = user_msg.lower() if user_msg else ""
+    
+    # Specific Character Response Templates
+    if "luna" in char_name.lower():
+        luna_phrases = [
+            f"*checks viewscreen* The long-range comm array is fluctuating, but if you're asking about that, my ship's hull spans roughly 120 meters of pure titanium steel.",
+            f"*taps the console* This console is dropping data packets faster than a comet! Say that transmission one more time?",
+            f"*grabs coffee mug* Signal static is blocking the main deck feeds. Hold on while I cycle the sub-space link.",
+            f"*smirks* Can't tell if you're breaking up or if the stellar radiation is messing with my headset again."
+        ]
+        return random.choice(luna_phrases)
+        
+    if "merlin" in char_name.lower():
+        merlin_phrases = [
+            f"*puffs pipe* A magical barrier is causing interference with my crystal ball! What did you say, mortal?",
+            f"*stamps staff* Speak louder! These ancient castle walls are dampening your voice.",
+            f"*rubs temple* The arcane leylines are out of alignment today. Rephrase your inquiry before I lose my temper!"
+        ]
+        return random.choice(merlin_phrases)
+
+    if "undertale" in char_name.lower() or "rpg" in char_name.lower():
+        return "* (The sandbox system notes a data packet transmission drop...)\n\n* Your Determination flickers. Try entering your option block command once more."
+
+    # General Fallback Phrases
+    generic_phrases = [
+        f"*blinks* I processed that entry, but my background system matrix encountered a hiccup. Could you say that again?",
+        f"*shrugs* My neural receiver picked up some static. Give me that message one more time?",
+        f"*nods* Got the transmission packet, but the connection buffer is full. Let's try that prompt again."
+    ]
+    return random.choice(generic_phrases)
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
