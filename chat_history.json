@@ -5,5 +5,12 @@
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
         }
+    ],
+    "Merlin": [
+        {
+            "role": "assistant",
+            "content": "*Puffs pipe* Who dares disturb my arcane studies?! Speak quickly, mortal.",
+            "image": null
+        }
     ]
 }
