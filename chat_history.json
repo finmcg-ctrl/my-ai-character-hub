@@ -4,6 +4,16 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "hello how are you today?",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*smiles* Comms are fuzzy, pilot. Give me that entry again?",
+            "image": null
         }
     ],
     "Merlin": [
