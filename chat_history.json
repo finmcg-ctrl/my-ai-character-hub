@@ -6,11 +6,6 @@
             "image": null
         },
         {
-            "role": "assistant",
-            "content": "*adjusts stance* Out here past the outer rim, you learn not to trust every stray data packet. What's your angle?",
-            "image": null
-        },
-        {
             "role": "user",
             "content": "i'm just making my own ship",
             "image": null
