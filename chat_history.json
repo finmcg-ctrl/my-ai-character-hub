@@ -1,11 +1,6 @@
 {
     "Luna": [
         {
-            "role": "user",
-            "content": "\"How tall is your ship?\"",
-            "image": null
-        },
-        {
             "role": "assistant",
             "content": "*grabs coffee mug* Signal static is blocking the main deck feeds. Hold on while I cycle the sub-space link.",
             "image": null
