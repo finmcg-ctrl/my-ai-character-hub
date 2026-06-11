@@ -6,11 +6,6 @@
             "image": null
         },
         {
-            "role": "user",
-            "content": "hello how are you today?",
-            "image": null
-        },
-        {
             "role": "assistant",
             "content": "*sighs* Comms are fuzzy, pilot. Give me that entry again?",
             "image": null
