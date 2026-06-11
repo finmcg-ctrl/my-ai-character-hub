@@ -9,11 +9,6 @@
             "role": "user",
             "content": "hey there Luna! I got a question for you",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*sighs deeply* Out here past the outer rim, you learn not to trust every stray data packet. What's your angle?",
-            "image": null
         }
     ]
 }
