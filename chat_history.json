@@ -4,11 +4,6 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
-        },
-        {
-            "role": "user",
-            "content": "\"how tall is your ship?\"",
-            "image": null
         }
     ],
     "Merlin": [
