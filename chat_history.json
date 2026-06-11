@@ -23,11 +23,6 @@
             "image": null
         },
         {
-            "role": "user",
-            "content": "Sorry! I'm just a bit lost",
-            "image": null
-        },
-        {
             "role": "assistant",
             "content": "*strokes his long white beard grumpily* An intriguing declaration... but I must get back to translating these ancient ruins before sunset.",
             "image": null
