@@ -139,33 +139,30 @@ def generate_reply(user_msg, char_name, has_image=False):
     
     system_instruction = (
         f"You are roleplaying 100% as the character '{char_name}' ({title}).\n"
-        f"Personality guidelines: {bio}\n"
-        f"Respond contextually as this character. Keep answers short and natural."
+        f"Personality context and guidelines:\n{bio}\n\n"
+        f"Respond to the user naturally in character. Keep answers concise, creative, and immersive."
     )
 
-    # Clean context array construction
-    history_context = [{"role": "system", "content": system_instruction}]
-    if char_name in st.session_state.messages:
-        for old_msg in st.session_state.messages[char_name][-4:]:
-            role_label = "user" if old_msg['role'] == 'user' else "assistant"
-            # Filter out empty content
-            if old_msg.get('content'):
-                history_context.append({"role": role_label, "content": old_msg['content']})
+    # Form clean context chat array for the AI engine
+    messages_payload = [{"role": "system", "content": system_instruction}]
     
-    history_context.append({"role": "user", "content": user_msg if user_msg else "Hello!"})
+    if char_name in st.session_state.messages:
+        for old_msg in st.session_state.messages[char_name][-5:]:
+            role_label = "user" if old_msg['role'] == 'user' else "assistant"
+            if old_msg.get('content'):
+                messages_payload.append({"role": role_label, "content": old_msg['content']})
 
     try:
-        # Check OpenAI key first
+        # Check for premium optional keys first
         openai_key = st.secrets.get("OPENAI_API_KEY", "")
         if openai_key:
             headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
-            payload = {"model": "gpt-4o-mini", "messages": history_context}
-            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=10)
+            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json={"model": "gpt-4o-mini", "messages": messages_payload}, timeout=10)
             if res.status_code == 200:
                 return res.json()["choices"][0]["message"]["content"].strip()
 
-        # Ultimate High-Stability Public Fallback Connection Router
-        fallback_res = requests.post(
+        # Zero-Config completely free public fallback model router
+        response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Content-Type": "application/json",
@@ -174,29 +171,27 @@ def generate_reply(user_msg, char_name, has_image=False):
             },
             json={
                 "model": "meta-llama/llama-3.2-3b-instruct:free",
-                "messages": history_context,
-                "temperature": 0.8,
+                "messages": messages_payload,
+                "temperature": 0.85,
                 "max_tokens": 150
             },
             timeout=12
         )
-        if fallback_res.status_code == 200:
-            data = fallback_res.json()
+        if response.status_code == 200:
+            data = response.json()
             if "choices" in data and len(data["choices"]) > 0:
-                ai_output = data["choices"][0]["message"]["content"].strip()
-                if ai_output:
-                    return ai_output
-    except Exception as e:
+                reply_content = data["choices"][0]["message"]["content"].strip()
+                if reply_content:
+                    return reply_content
+    except:
         pass
 
-    # Safety Text Strings (Only shows up if internet fails completely)
-    actions = ["*sighs*", "*smiles*", "*looks up*", "*nods*"]
+    # Complete fail-safe text string fallback generator if the external network cuts off entirely
+    actions = ["*sighs*", "*shrugs*", "*smiles*", "*crosses arms*", "*blinks*"]
     act = random.choice(actions)
-    if "luna" in char_name.lower():
-        return f"{act} Comms are fuzzy, pilot. Give me that entry again?"
-    if "merlin" in char_name.lower():
-        return f"{act} The crystal ball is clouded by temporal storms. Repeat thy query!"
-    return f"{act} I received your message packet, but my sub-systems are recycling. Try again?"
+    if "undertale" in char_name.lower():
+        return "* (The sandbox system is experiencing static connection noise... Please re-enter your structural command.)"
+    return f"{act} I'm catching a bit of interference out here. What was that again?"
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
