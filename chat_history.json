@@ -4,11 +4,6 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
-        },
-        {
-            "role": "user",
-            "content": "hey there Luna! I got a question for you",
-            "image": null
         }
     ]
 }
