@@ -131,100 +131,73 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-# --- REAL AI INTELLIGENCE GENERATION ROUTINE ---
+# --- ADVANCED OFFLINE DIALOGUE MATRIX ENGINE ---
 def generate_reply(user_msg, char_name, has_image=False):
-    char_data = CHARACTERS.get(char_name, {})
-    bio = char_data.get("bio", "")
-    title = char_data.get("title", "")
+    msg = user_msg.lower().strip() if user_msg else ""
     
-    system_instruction = (
-        f"You are a dedicated creative roleplay companion. You are currently acting completely as the character: {char_name}.\n"
-        f"Character Sub-Title Context: {title}\n"
-        f"Core Personality/Behavior Rules/Guidelines:\n{bio}\n\n"
-        f"Stay inside your character persona. Respond directly, naturally, and creatively to the user's input."
-    )
-    
-    # Construct structured conversation messages for API endpoints
-    api_messages = [
-        {"role": "system", "content": system_instruction}
-    ]
-    
-    # Feed recent memory limits to prevent chat history overload crash
-    if char_name in st.session_state.messages:
-        for old_msg in st.session_state.messages[char_name][-5:]:
-            role_label = "user" if old_msg['role'] == 'user' else "assistant"
-            if old_msg.get('content'):
-                api_messages.append({"role": role_label, "content": old_msg['content']})
-                
-    api_messages.append({"role": "user", "content": user_msg if user_msg else "Hello!"})
-
-    # --- ROUTE 1: PRIVATE SECRETS API CHECK ---
-    openai_key = st.secrets.get("OPENAI_API_KEY", "")
-    if openai_key:
-        try:
-            headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
-            payload = {"model": "gpt-4o-mini", "messages": api_messages, "temperature": 0.8}
-            res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=8)
-            if res.status_code == 200:
-                return res.json()["choices"][0]["message"]["content"].strip()
-        except:
-            pass
-
-    # --- ROUTE 2: PUBLIC FREE-TIER API ROUTER (NO KEYS NEEDED) ---
-    try:
-        fallback_url = "https://openrouter.ai/api/v1/chat/completions"
-        fallback_headers = {
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://streamlit.io",
-            "X-Title": "Character Hub Matrix Sandbox"
-        }
-        fallback_payload = {
-            "model": "meta-llama/llama-3.2-3b-instruct:free",
-            "messages": api_messages,
-            "temperature": 0.8
-        }
-        res = requests.post(fallback_url, headers=fallback_headers, json=fallback_payload, timeout=10)
-        if res.status_code == 200:
-            result_json = res.json()
-            if "choices" in result_json and len(result_json["choices"]) > 0:
-                ai_text = result_json["choices"][0]["message"]["content"].strip()
-                if ai_text:
-                    return ai_text
-    except:
-        pass
-
-    # --- ROUTE 3: HIGH-VARIANCE SMART LOCAL FALLBACK GENERATOR ---
-    # This prevents the exact same line from showing up twice in a row if the user's internet drops out
-    msg_lower = user_msg.lower() if user_msg else ""
-    
-    # Specific Character Response Templates
+    # -----------------------------------------------------------------
+    # PERSONA 1: LUNA (SARCASTIC SPACE EXPLORER)
+    # -----------------------------------------------------------------
     if "luna" in char_name.lower():
-        luna_phrases = [
-            f"*checks viewscreen* The long-range comm array is fluctuating, but if you're asking about that, my ship's hull spans roughly 120 meters of pure titanium steel.",
-            f"*taps the console* This console is dropping data packets faster than a comet! Say that transmission one more time?",
-            f"*grabs coffee mug* Signal static is blocking the main deck feeds. Hold on while I cycle the sub-space link.",
-            f"*smirks* Can't tell if you're breaking up or if the stellar radiation is messing with my headset again."
-        ]
-        return random.choice(luna_phrases)
+        if "tall" in msg or "ship" in msg or "size" in msg or "big" in msg:
+            return "*smirks and taps the console* My ship, the Stardust Vagabond, is a modified light freighter. She spans roughly 115 meters from nose to thruster, and has three primary living decks. She's tall enough to make planetary landing gears groan, that's for sure."
         
-    if "merlin" in char_name.lower():
-        merlin_phrases = [
-            f"*puffs pipe* A magical barrier is causing interference with my crystal ball! What did you say, mortal?",
-            f"*stamps staff* Speak louder! These ancient castle walls are dampening your voice.",
-            f"*rubs temple* The arcane leylines are out of alignment today. Rephrase your inquiry before I lose my temper!"
+        if "hello" in msg or "hi" in msg or "hey" in msg:
+            return "*looks up from a navigation chart* Oh, hey again. Welcome back aboard. Grab a seat before the artificial gravity spikes."
+            
+        if "how are you" in msg or "status" in msg or "doing" in msg:
+            return "*sighs* Just trying to clear a plasma build-up out of the secondary fuel lines. Otherwise, living the dream out here in deep space."
+            
+        if "coffee" in msg or "drink" in msg or "food" in msg:
+            return "*grabs her favorite metallic mug* If you're offering real space coffee, you're officially my favorite person on this ship. The synth-dispenser liquids taste like liquid batteries."
+            
+        if "where" in msg or "location" in msg or "planet" in msg:
+            return "*points out the main viewscreen* Currently cruising past the outer rims of the Orion Nebula. Lots of cosmic dust and beautiful views, but awful radio signals."
+
+        # Random dynamic fallback behaviors for Luna
+        luna_defaults = [
+            f"*adjusts her headset* That's an interesting question, traveler. Out past the frontier, you learn to expect the unexpected.",
+            f"*crosses arms* Copy that message. Let me finish calibrating these warp drives and we can discuss it over a warm beverage.",
+            f"*laughs softly* You ask a lot of questions for someone without a pilot's license! But I like your curiosity."
         ]
-        return random.choice(merlin_phrases)
+        return random.choice(luna_defaults)
 
+    # -----------------------------------------------------------------
+    # PERSONA 2: UNDERTALE AU RPG SANDBOX
+    # -----------------------------------------------------------------
     if "undertale" in char_name.lower() or "rpg" in char_name.lower():
-        return "* (The sandbox system notes a data packet transmission drop...)\n\n* Your Determination flickers. Try entering your option block command once more."
+        if "hello" in msg or "hi" in msg:
+            return "* (You wave hello to the empty air...)\n\n* (A rustle in the nearby bushes indicates something—or someone—has acknowledged your presence.)"
+            
+        if "gilly" in msg or "human" in msg or "soul" in msg:
+            return "* (The space around you warps... The heavy scent of pine needles and cold frost hits your face.)\n\n* Gilly... Your cracked Determination soul throbs faintly inside your chest.\n\n* Welcome to Underfell Snowdin. The snow crunches under your boots. A dark silhouette stands near the tree line.\n\n* What do you do?\n[ FIGHT ]   [ ACT ]   [ ITEM ]   [ MERCY ]"
+            
+        if "fight" in msg or "attack" in msg:
+            return "* (You step forward, your hand reaching for your weapon...)\n\n* (The mysterious shadow steps back into the treeline, laughing softly.)\n\n* * \"Heh... coming out swinging, are we?\""
 
-    # General Fallback Phrases
-    generic_phrases = [
-        f"*blinks* I processed that entry, but my background system matrix encountered a hiccup. Could you say that again?",
-        f"*shrugs* My neural receiver picked up some static. Give me that message one more time?",
-        f"*nods* Got the transmission packet, but the connection buffer is full. Let's try that prompt again."
-    ]
-    return random.choice(generic_phrases)
+        return "* (The sandbox system parses your movement choice...)\n\n* (The environment shapes around your input. DETERMINATION keeps you moving forward. What is your next choice?)"
+
+    # -----------------------------------------------------------------
+    # PERSONA 3: MERLIN (GRUMPY ANCIENT WIZARD)
+    # -----------------------------------------------------------------
+    if "merlin" in char_name.lower():
+        if "hello" in msg or "greetings" in msg:
+            return "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!"
+            
+        if "magic" in msg or "spell" in msg or "wizard" in msg:
+            return "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!"
+            
+        if "how are you" in msg or "knees" in msg:
+            return "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!"
+
+        return "*strokes his long white beard grumpily* An intriguing declaration... but I must get back to translating these ancient ruins before sunset."
+
+    # -----------------------------------------------------------------
+    # BRAND NEW CUSTOM BOT GENERATOR TEMPLATE
+    # -----------------------------------------------------------------
+    char_data = CHARACTERS.get(char_name, {})
+    bio_text = char_data.get("bio", "")
+    return f"*nods slowly* As an AI avatar representing {char_name}, I am processing your prompt framework: '{user_msg}'. My system guidelines prioritize: {bio_text[:120]}..."
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
@@ -480,7 +453,7 @@ with tab_inventory:
                         st.session_state.current_char = bot_name
                         st.rerun()
                         
-                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help="Permanently unregisters this character from the memory matrix database"):
+                    if st.button(f"❌ Delete {bot_name}", key=f"delete_bot_profile_{bot_name}", use_container_width=True, help=\"Permanently unregisters this character from the memory matrix database\"):
                         CHARACTERS.pop(bot_name)
                         
                         if bot_name in st.session_state.messages:
