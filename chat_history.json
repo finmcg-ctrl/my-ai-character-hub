@@ -1,11 +1,6 @@
 {
     "Luna": [
         {
-            "role": "assistant",
-            "content": "Comm-line active. Hey there, traveler!",
-            "image": null
-        },
-        {
             "role": "user",
             "content": "\"How tall is your ship?\"",
             "image": null
