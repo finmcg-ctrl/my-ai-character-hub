@@ -4,6 +4,16 @@
             "role": "assistant",
             "content": "Comm-line active. Hey there, traveler!",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "hey there Luna! I got a question for you",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*adjusts stance* Out here past the outer rim, you learn not to trust every stray data packet. What's your angle?",
+            "image": null
         }
     ]
 }
