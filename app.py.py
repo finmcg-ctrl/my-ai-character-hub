@@ -174,7 +174,8 @@ def generate_reply(user_msg, char_name, has_image=False):
         pass
 
     # ================= UNIQUE OFFLINE FALLBACK PACKETS =================
-    msg = user_msg.lower().strip() if user_msg else ""
+    # Normalize input: remove quotes, make lowercase, strip whitespace
+    msg = user_msg.lower().replace('"', '').replace("'", "").strip() if user_msg else ""
     
     # 1. LUNA MATRIX FALLBACK RULES
     if "luna" in char_name.lower():
@@ -192,7 +193,8 @@ def generate_reply(user_msg, char_name, has_image=False):
         luna_defaults = [
             "*adjusts her headset* That's an interesting question, traveler. Out past the frontier, you learn to expect the unexpected.",
             "*crosses arms* Copy that message. Let me finish calibrating these warp drives and we can discuss it over a warm beverage.",
-            "*laughs softly* You ask a lot of questions for someone without a pilot's license! But I like your curiosity."
+            "*laughs softly* You ask a lot of questions for someone without a pilot's license! But I like your curiosity.",
+            "*checks console* Systems look clear. What's your next heading, partner?"
         ]
         return random.choice(luna_defaults)
 
@@ -215,12 +217,24 @@ def generate_reply(user_msg, char_name, has_image=False):
             return "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!"
         if "how are you" in msg or "knees" in msg:
             return "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!"
+        if "town" in msg or "direction" in msg or "lost" in msg or "where" in msg:
+            return "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler—the road is perilous."
         
-        return "*strokes his long white beard grumpily* An intriguing declaration... but I must get back to translating these ancient ruins before sunset."
+        merlin_defaults = [
+            "*strokes his long white beard grumpily* An intriguing declaration... but I must get back to translating these ancient runes before sunset.",
+            "*mumbles an incantation* Do not distract an old wizard while he sorts his alchemy components!",
+            "*adjusts his robes* Speak plainly, mortal! I haven't got all century."
+        ]
+        return random.choice(merlin_defaults)
 
     # 4. CUSTOM USER-CREATED BOT FALLBACK PLAN
     bio_text = bio if bio else "No bio framework discovered."
-    return f"*nods slowly* As an AI profile representing {char_name}, I am processing your prompt framework: '{user_msg}'. My fallback parameters prioritize: {bio_text[:120]}..."
+    custom_defaults = [
+        f"*nods slowly* As an AI profile representing {char_name}, I am processing your prompt framework: '{user_msg}'. My fallback parameters prioritize: {bio_text[:120]}...",
+        f"*takes a moment to process* Interesting prompt context. Let's see how this ties into my profile background data.",
+        f"*responds in character* I'm tracking your setup! Give me more parameters to build this scene."
+    ]
+    return random.choice(custom_defaults)
 
 # --- NAVIGATION HUB SIDEBAR WITH FILTERS AND SEARCH ---
 with st.sidebar:
