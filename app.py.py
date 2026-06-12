@@ -131,16 +131,55 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-# --- ADVANCED HIGH-VARIANCE DIALOGUE MATRIX ENGINE (OPTION B) ---
+# --- ADVANCED HIGH-VARIANCE DIALOGUE MATRIX ENGINE ---
 def generate_reply(user_msg, char_name, has_image=False):
     """
-    Connects chat input directly to custom layout pools to prevent duplicate bot replies.
+    Connects chat input directly to custom layout pools. Matches specific
+    hardcoded keyword parameters first before triggering alternative API generations.
     """
     char_data = CHARACTERS.get(char_name, {})
     bio = char_data.get("bio", "")
     title = char_data.get("title", "")
     
-    # System identity instructions for the API check
+    # Normalize input completely to maximize matching consistency
+    msg = user_msg.lower().replace('"', '').replace("'", "").strip() if user_msg else ""
+    
+    # ================= PHASE 1: PRIMARY PRIORITY KEYWORD RULES =================
+    
+    # 1. LUNA CHAT MATCHING
+    if "luna" in char_name.lower():
+        if "coffee" in msg or "drink" in msg or "food" in msg:
+            return "*grabs her favorite metallic mug* If you're offering real space coffee, you're officially my favorite person on this ship. The synth-dispenser liquids taste like liquid batteries."
+        if "tall" in msg or "ship" in msg or "size" in msg or "big" in msg:
+            return "*smirks and taps the console* My ship, the Stardust Vagabond, is a modified light freighter. She spans roughly 115 meters from nose to thruster, and has three primary living decks. She's tall enough to make planetary landing gears groan, that's for sure."
+        if "hello" in msg or "hi" in msg or "hey" in msg:
+            return "*looks up from a navigation chart* Oh, hey again. Welcome back aboard. Grab a seat before the artificial gravity spikes."
+        if "how are you" in msg or "status" in msg or "doing" in msg:
+            return "*sighs* Just trying to clear a plasma build-up out of the secondary fuel lines. Otherwise, living the dream out here in deep space."
+        if "where" in msg or "location" in msg or "planet" in msg:
+            return "*points out the main viewscreen* Currently cruising past the outer rims of the Orion Nebula. Lots of cosmic dust and beautiful views, but awful radio signals."
+
+    # 2. UNDERTALE SANDBOX MATCHING
+    elif "undertale" in char_name.lower() or "rpg" in char_name.lower():
+        if "hello" in msg or "hi" in msg:
+            return "* (You wave hello to the empty air...)\n\n* (A rustle in the nearby bushes indicates something—or someone—has acknowledged your presence.)"
+        if "gilly" in msg or "human" in msg or "soul" in msg:
+            return "* (The space around you warps... The heavy scent of pine needles and cold frost hits your face.)\n\n* Gilly... Your cracked Determination soul throbs faintly inside your chest.\n\n* Welcome to Underfell Snowdin. The snow crunches under your boots. A dark silhouette stands near the tree line.\n\n* What do you do?\n[ FIGHT ]   [ ACT ]   [ ITEM ]   [ MERCY ]"
+        if "fight" in msg or "attack" in msg:
+            return "* (You step forward, your hand reaching for your weapon...)\n\n* (The mysterious shadow steps back into the treeline, laughing softly.)\n\n* * \"Heh... coming out swinging, are we?\""
+
+    # 3. MERLIN MATCHING
+    elif "merlin" in char_name.lower():
+        if "town" in msg or "direction" in msg or "lost" in msg or "where" in msg or "village" in msg:
+            return "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler—the road is perilous."
+        if "hello" in msg or "greetings" in msg or "hi" in msg or "thank" in msg:
+            return "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!"
+        if "magic" in msg or "spell" in msg or "wizard" in msg:
+            return "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!"
+        if "how are you" in msg or "knees" in msg:
+            return "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!"
+
+    # ================= PHASE 2: ONLINE AI BACKFILL ENGINE =================
     system_instruction = (
         f"You are a dedicated creative roleplay companion. You are currently acting completely as the character: {char_name}.\n"
         f"Character Sub-Title Context: {title}\n"
@@ -149,13 +188,12 @@ def generate_reply(user_msg, char_name, has_image=False):
         f"Never use generic placeholder phrases. Write dynamically and organically using actions wrapped in asterisks (*) where appropriate."
     )
     
-    # Compile short conversational history memory block
+    # Compile history block
     history_context = ""
     if char_name in st.session_state.messages:
         for old_msg in st.session_state.messages[char_name][-6:]:
             history_context += f"{old_msg['role']}: {old_msg['content']}\n"
             
-    # Automated secure API bridge execution block
     try:
         openai_key = st.secrets.get("OPENAI_API_KEY", "")
         if openai_key:
@@ -173,23 +211,8 @@ def generate_reply(user_msg, char_name, has_image=False):
     except:
         pass
 
-    # ================= UNIQUE OFFLINE FALLBACK PACKETS =================
-    # Normalize input: remove quotes, make lowercase, strip whitespace
-    msg = user_msg.lower().replace('"', '').replace("'", "").strip() if user_msg else ""
-    
-    # 1. LUNA MATRIX FALLBACK RULES
+    # ================= PHASE 3: RANDOM FALLBACK POOLS =================
     if "luna" in char_name.lower():
-        if "coffee" in msg or "drink" in msg or "food" in msg:
-            return "*grabs her favorite metallic mug* If you're offering real space coffee, you're officially my favorite person on this ship. The synth-dispenser liquids taste like liquid batteries."
-        if "tall" in msg or "ship" in msg or "size" in msg or "big" in msg:
-            return "*smirks and taps the console* My ship, the Stardust Vagabond, is a modified light freighter. She spans roughly 115 meters from nose to thruster, and has three primary living decks. She's tall enough to make planetary landing gears groan, that's for sure."
-        if "hello" in msg or "hi" in msg or "hey" in msg:
-            return "*looks up from a navigation chart* Oh, hey again. Welcome back aboard. Grab a seat before the artificial gravity spikes."
-        if "how are you" in msg or "status" in msg or "doing" in msg:
-            return "*sighs* Just trying to clear a plasma build-up out of the secondary fuel lines. Otherwise, living the dream out here in deep space."
-        if "where" in msg or "location" in msg or "planet" in msg:
-            return "*points out the main viewscreen* Currently cruising past the outer rims of the Orion Nebula. Lots of cosmic dust and beautiful views, but awful radio signals."
-        
         luna_defaults = [
             "*adjusts her headset* That's an interesting question, traveler. Out past the frontier, you learn to expect the unexpected.",
             "*crosses arms* Copy that message. Let me finish calibrating these warp drives and we can discuss it over a warm beverage.",
@@ -198,28 +221,10 @@ def generate_reply(user_msg, char_name, has_image=False):
         ]
         return random.choice(luna_defaults)
 
-    # 2. UNDERTALE Sandbox FALLBACK RULES
     elif "undertale" in char_name.lower() or "rpg" in char_name.lower():
-        if "hello" in msg or "hi" in msg:
-            return "* (You wave hello to the empty air...)\n\n* (A rustle in the nearby bushes indicates something—or someone—has acknowledged your presence.)"
-        if "gilly" in msg or "human" in msg or "soul" in msg:
-            return "* (The space around you warps... The heavy scent of pine needles and cold frost hits your face.)\n\n* Gilly... Your cracked Determination soul throbs faintly inside your chest.\n\n* Welcome to Underfell Snowdin. The snow crunches under your boots. A dark silhouette stands near the tree line.\n\n* What do you do?\n[ FIGHT ]   [ ACT ]   [ ITEM ]   [ MERCY ]"
-        if "fight" in msg or "attack" in msg:
-            return "* (You step forward, your hand reaching for your weapon...)\n\n* (The mysterious shadow steps back into the treeline, laughing softly.)\n\n* * \"Heh... coming out swinging, are we?\""
-        
         return "* (The sandbox system parses your movement choice...)\n\n* (The environment shapes around your input. DETERMINATION keeps you moving forward. What is your next choice?)"
 
-    # 3. MERLIN MATRIX FALLBACK RULES
     elif "merlin" in char_name.lower():
-        if "hello" in msg or "greetings" in msg or "hi" in msg:
-            return "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!"
-        if "magic" in msg or "spell" in msg or "wizard" in msg:
-            return "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!"
-        if "how are you" in msg or "knees" in msg:
-            return "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!"
-        if "town" in msg or "direction" in msg or "lost" in msg or "where" in msg:
-            return "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler—the road is perilous."
-        
         merlin_defaults = [
             "*strokes his long white beard grumpily* An intriguing declaration... but I must get back to translating these ancient runes before sunset.",
             "*mumbles an incantation* Do not distract an old wizard while he sorts his alchemy components!",
@@ -227,7 +232,6 @@ def generate_reply(user_msg, char_name, has_image=False):
         ]
         return random.choice(merlin_defaults)
 
-    # 4. CUSTOM USER-CREATED BOT FALLBACK PLAN
     bio_text = bio if bio else "No bio framework discovered."
     custom_defaults = [
         f"*nods slowly* As an AI profile representing {char_name}, I am processing your prompt framework: '{user_msg}'. My fallback parameters prioritize: {bio_text[:120]}...",
