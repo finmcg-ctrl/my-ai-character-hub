@@ -21,6 +21,16 @@
             "role": "assistant",
             "content": "*Puffs pipe* Who dares disturb my arcane studies?! Speak quickly, mortal.",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "Sorry I'm just lost, I'm looking for the nearest village",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler\u2014the road is perilous.",
+            "image": null
         }
     ]
 }
