@@ -144,22 +144,41 @@ def generate_reply(user_msg, char_name, has_image=False):
     # Normalize input completely to maximize matching consistency
     msg = user_msg.lower().replace('"', '').replace("'", "").strip() if user_msg else ""
     
-    # ================= PHASE 1: PRIMARY PRIORITY KEYWORD RULES =================
+    # ================= PHASE 1: SMART HIGH-VARIANCE KEYWORD FILTERS =================
     
-    # 1. LUNA CHAT MATCHING
+    # 1. LUNA VARIANT MATCHING
     if "luna" in char_name.lower():
         if "coffee" in msg or "drink" in msg or "food" in msg:
-            return "*grabs her favorite metallic mug* If you're offering real space coffee, you're officially my favorite person on this ship. The synth-dispenser liquids taste like liquid batteries."
+            return random.choice([
+                "*grabs her favorite metallic mug* If you're offering real space coffee, you're officially my favorite person on this ship. The synth-dispenser liquids taste like liquid batteries.",
+                "*sips from a thermal flask* This junk tastes like filtered engine coolant, but it keeps me awake during warp jumps.",
+                "*smiles faintly* Unless it's dark roast from the Orion colony, don't tempt me. I've got enough synthetic sludge in my system."
+            ])
         if "tall" in msg or "ship" in msg or "size" in msg or "big" in msg:
-            return "*smirks and taps the console* My ship, the Stardust Vagabond, is a modified light freighter. She spans roughly 115 meters from nose to thruster, and has three primary living decks. She's tall enough to make planetary landing gears groan, that's for sure."
+            return random.choice([
+                "*smirks and taps the console* My ship, the Stardust Vagabond, is a modified light freighter. She spans roughly 115 meters from nose to thruster, and has three primary living decks. She's tall enough to make planetary landing gears groan, that's for sure.",
+                "*gestures broadly* The Stardust Vagabond isn't a military dreadnought, but she's got size where it counts—115 meters of customized hull plating and cargo bays.",
+                "She's a light freighter deck design. Big enough to live in comfortably, small enough to slip past planetary customs without a fuss."
+            ])
         if "hello" in msg or "hi" in msg or "hey" in msg:
-            return "*looks up from a navigation chart* Oh, hey again. Welcome back aboard. Grab a seat before the artificial gravity spikes."
+            return random.choice([
+                "*looks up from a navigation chart* Oh, hey again. Welcome back aboard. Grab a seat before the artificial gravity spikes.",
+                "*waves lazily* Hey there. Try not to track asteroid dust onto the flight deck floor.",
+                "Comm lines clear. What's on your mind, traveler?"
+            ])
         if "how are you" in msg or "status" in msg or "doing" in msg:
-            return "*sighs* Just trying to clear a plasma build-up out of the secondary fuel lines. Otherwise, living the dream out here in deep space."
+            return random.choice([
+                "*sighs* Just trying to clear a plasma build-up out of the secondary fuel lines. Otherwise, living the dream out here in deep space.",
+                "*adjusts her headset* Alive, floating, and out of range of planetary tax collectors. Can't complain too much.",
+                "Just running system diagnostics. The left engine thruster is making a weird clicking sound again."
+            ])
         if "where" in msg or "location" in msg or "planet" in msg:
-            return "*points out the main viewscreen* Currently cruising past the outer rims of the Orion Nebula. Lots of cosmic dust and beautiful views, but awful radio signals."
+            return random.choice([
+                "*points out the main viewscreen* Currently cruising past the outer rims of the Orion Nebula. Lots of cosmic dust and beautiful views, but awful radio signals.",
+                "Deep space, moving along a vector toward the frontier. Nothing out here but rocks, stars, and quiet."
+            ])
 
-    # 2. UNDERTALE SANDBOX MATCHING
+    # 2. UNDERTALE SANDBOX VARIANT MATCHING
     elif "undertale" in char_name.lower() or "rpg" in char_name.lower():
         if "hello" in msg or "hi" in msg:
             return "* (You wave hello to the empty air...)\n\n* (A rustle in the nearby bushes indicates something—or someone—has acknowledged your presence.)"
@@ -168,16 +187,30 @@ def generate_reply(user_msg, char_name, has_image=False):
         if "fight" in msg or "attack" in msg:
             return "* (You step forward, your hand reaching for your weapon...)\n\n* (The mysterious shadow steps back into the treeline, laughing softly.)\n\n* * \"Heh... coming out swinging, are we?\""
 
-    # 3. MERLIN MATCHING
+    # 3. MERLIN VARIANT MATCHING
     elif "merlin" in char_name.lower():
         if "town" in msg or "direction" in msg or "lost" in msg or "where" in msg or "village" in msg:
-            return "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler—the road is perilous."
+            return random.choice([
+                "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler—the road is perilous.",
+                "*sighs heavily* If it is a village you seek, follow the old stone path down the mountain ridge. But mind the bogs!",
+                "*taps his staff* Wandering aimlessly will get you eaten by goblins. Head east toward the forest clearing if you require civilization."
+            ])
         if "hello" in msg or "greetings" in msg or "hi" in msg or "thank" in msg:
-            return "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!"
+            return random.choice([
+                "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!",
+                "*glares over his spectacles* You disrupt my thoughts once more! Speak your piece or leave an old wizard to his peace.",
+                "Acknowledge your pleasantries, mortal. Now, out with it—my potions are reaching a critical boiling threshold!"
+            ])
         if "magic" in msg or "spell" in msg or "wizard" in msg:
-            return "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!"
+            return random.choice([
+                "*stamps his oaken staff* Magic requires centuries of intense study! It isn't some cheap marketplace parlor trick!",
+                "You speak of sorcery as if it were a simple game. The arcane arts demand ultimate discipline and sacrifice!"
+            ])
         if "how are you" in msg or "knees" in msg:
-            return "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!"
+            return random.choice([
+                "*rubs his lower back* My knees are aching from this dungeon dampness, and my glowing potions keep bubbling over. Bah!",
+                "Tired, ancient, and pestered by mortals! That is my current condition."
+            ])
 
     # ================= PHASE 2: ONLINE AI BACKFILL ENGINE =================
     system_instruction = (
