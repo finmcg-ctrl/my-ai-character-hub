@@ -36,11 +36,6 @@
             "role": "user",
             "content": "thank you sir",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*adjusts his robes* Speak plainly, mortal! I haven't got all century.",
-            "image": null
         }
     ]
 }
