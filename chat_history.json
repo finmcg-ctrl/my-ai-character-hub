@@ -56,11 +56,6 @@
             "role": "user",
             "content": "Thanks again sir! *I call back. thanking the wizard again.*",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "Acknowledge your pleasantries, mortal. Now, out with it\u2014my potions are reaching a critical boiling threshold!",
-            "image": null
         }
     ]
 }
