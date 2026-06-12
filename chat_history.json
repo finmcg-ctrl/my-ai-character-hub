@@ -31,6 +31,16 @@
             "role": "assistant",
             "content": "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler\u2014the road is perilous.",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "thank you for pointing the way for me kind sir",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!",
+            "image": null
         }
     ]
 }
