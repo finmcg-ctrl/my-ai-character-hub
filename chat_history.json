@@ -51,6 +51,16 @@
             "role": "assistant",
             "content": "*points his bony finger toward the eastern fog* The nearest settlement lies past the Whisper Woods. Keep your wits about you, traveler\u2014the road is perilous.",
             "image": null
+        },
+        {
+            "role": "user",
+            "content": "*the wizard continues his arcane studies.*",
+            "image": null
+        },
+        {
+            "role": "assistant",
+            "content": "*waves his hand dismissively* Yes, yes, greetings. Your gratitude is noted, now state your business before my incense burns out.",
+            "image": null
         }
     ]
 }
