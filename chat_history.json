@@ -36,11 +36,6 @@
             "role": "user",
             "content": "thank you",
             "image": null
-        },
-        {
-            "role": "assistant",
-            "content": "*puffs pipe crankily* Back again? Don't trip over my spellbooks, they are arranged by ancient cosmic order!",
-            "image": null
         }
     ]
 }
