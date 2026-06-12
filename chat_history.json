@@ -53,11 +53,6 @@
             "image": null
         },
         {
-            "role": "user",
-            "content": "*The wizard goes back to his studies.*",
-            "image": null
-        },
-        {
             "role": "assistant",
             "content": "*glares over his spectacles* You disrupt my thoughts once more! Speak your piece or leave an old wizard to his peace.",
             "image": null
